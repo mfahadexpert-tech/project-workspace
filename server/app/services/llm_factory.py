@@ -38,7 +38,11 @@ class LLMFactory:
         # ── 1. Try Google Gemini (Active & Verified) ─────────────────────────
         if settings.GEMINI_API_KEY:
             model = role_models.get("gemini", "gemini-3.6-flash")
-            for candidate_model in [model, "gemini-3.6-flash", "gemini-flash-latest", "gemini-pro-latest"]:
+            seen_models = set()
+            for candidate_model in [model, "gemini-3.6-flash", "gemini-flash-latest"]:
+                if candidate_model in seen_models:
+                    continue
+                seen_models.add(candidate_model)
                 try:
                     url = (
                         f"https://generativelanguage.googleapis.com/v1beta/models/"
@@ -53,8 +57,15 @@ class LLMFactory:
                     res = requests.post(url, json=payload, timeout=60)
                     if res.status_code == 200:
                         data = res.json()
-                        print(f"[LLMFactory] [OK] Gemini {candidate_model} -> {agent_role}")
-                        return data["candidates"][0]["content"]["parts"][0]["text"]
+                        candidates = data.get("candidates", [])
+                        if candidates and "content" in candidates[0] and "parts" in candidates[0]["content"]:
+                            parts = candidates[0]["content"]["parts"]
+                            text_parts = [p["text"] for p in parts if "text" in p and not p.get("thought", False)]
+                            if not text_parts:
+                                text_parts = [p.get("text", "") for p in parts if "text" in p]
+                            if text_parts:
+                                print(f"[LLMFactory] [OK] Gemini {candidate_model} -> {agent_role}")
+                                return "\n".join(text_parts).strip()
                     else:
                         print(f"[LLMFactory] Gemini {candidate_model} {res.status_code}: {res.text[:200]}")
                 except Exception as e:
