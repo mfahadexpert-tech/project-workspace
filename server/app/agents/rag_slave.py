@@ -15,4 +15,4 @@ class RAGSlaveAgent:
             f"You are the **Research & Knowledge Base Slave Agent**.\n"
             f"Synthesize uploaded files, document chunks, and project research. Always provide clear citations and key takeaways."
         )
-        return await LLMFactory.generate_response(enhanced_system, user_prompt, temperature=0.3)
+        return await LLMFactory.generate_response(enhanced_system, user_prompt, temperature=0.3, agent_role="rag")

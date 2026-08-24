@@ -14,10 +14,10 @@ class LLMFactory:
     # ── Agent Role → Model Mapping ────────────────────────────────────────────
     AGENT_MODELS = {
         "supervisor":     {"openai": settings.SUPERVISOR_MODEL,    "gemini": settings.SUPERVISOR_MODEL_GEMINI},
-        "coding":         {"openai": settings.CODING_MODEL,        "gemini": settings.RAG_MODEL_FALLBACK},
-        "architecture":   {"openai": settings.ARCH_MODEL_FALLBACK, "gemini": settings.RAG_MODEL_FALLBACK},
-        "rag":            {"openai": settings.RAG_MODEL_FALLBACK,  "gemini": settings.RAG_MODEL},
-        "qa":             {"openai": settings.QA_MODEL_FALLBACK,   "gemini": settings.RAG_MODEL_FALLBACK},
+        "coding":         {"openai": settings.CODING_MODEL,        "gemini": settings.CODING_MODEL_GEMINI},
+        "architecture":   {"openai": settings.ARCH_MODEL_FALLBACK, "gemini": settings.ARCH_MODEL_GEMINI},
+        "rag":            {"openai": settings.RAG_MODEL_FALLBACK,  "gemini": settings.RAG_MODEL_GEMINI},
+        "qa":             {"openai": settings.QA_MODEL_FALLBACK,   "gemini": settings.QA_MODEL_GEMINI},
         "assistant":      {"openai": settings.ASSISTANT_MODEL,     "gemini": settings.ASSISTANT_MODEL_GEMINI},
     }
 
@@ -27,7 +27,7 @@ class LLMFactory:
         user_prompt: str,
         temperature: float = 0.7,
         stream: bool = False,
-        agent_role: str = "supervisor"   # <-- pass this from each agent
+        agent_role: str = "supervisor"
     ) -> str:
         """
         Route to the best available provider automatically.
@@ -35,7 +35,32 @@ class LLMFactory:
         """
         role_models = LLMFactory.AGENT_MODELS.get(agent_role, LLMFactory.AGENT_MODELS["supervisor"])
 
-        # ── 1. Try OpenAI ────────────────────────────────────────────────────
+        # ── 1. Try Google Gemini (Active & Verified) ─────────────────────────
+        if settings.GEMINI_API_KEY:
+            model = role_models.get("gemini", "gemini-3.6-flash")
+            for candidate_model in [model, "gemini-3.6-flash", "gemini-flash-latest", "gemini-pro-latest"]:
+                try:
+                    url = (
+                        f"https://generativelanguage.googleapis.com/v1beta/models/"
+                        f"{candidate_model}:generateContent?key={settings.GEMINI_API_KEY}"
+                    )
+                    payload = {
+                        "contents": [{
+                            "parts": [{"text": f"{system_prompt}\n\nUSER REQUEST:\n{user_prompt}"}]
+                        }],
+                        "generationConfig": {"temperature": temperature}
+                    }
+                    res = requests.post(url, json=payload, timeout=60)
+                    if res.status_code == 200:
+                        data = res.json()
+                        print(f"[LLMFactory] [OK] Gemini {candidate_model} -> {agent_role}")
+                        return data["candidates"][0]["content"]["parts"][0]["text"]
+                    else:
+                        print(f"[LLMFactory] Gemini {candidate_model} {res.status_code}: {res.text[:200]}")
+                except Exception as e:
+                    print(f"[LLMFactory] Gemini Error: {e}")
+
+        # ── 2. Try OpenAI ────────────────────────────────────────────────────
         if settings.OPENAI_API_KEY:
             model = role_models.get("openai", settings.DEFAULT_MODEL)
             try:
@@ -57,36 +82,12 @@ class LLMFactory:
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    print(f"[LLMFactory] ✅ OpenAI {model} → {agent_role}")
+                    print(f"[LLMFactory] [OK] OpenAI {model} -> {agent_role}")
                     return data["choices"][0]["message"]["content"]
                 else:
                     print(f"[LLMFactory] OpenAI {res.status_code}: {res.text[:200]}")
             except Exception as e:
                 print(f"[LLMFactory] OpenAI Error: {e}")
-
-        # ── 2. Try Google Gemini ─────────────────────────────────────────────
-        if settings.GEMINI_API_KEY:
-            model = role_models.get("gemini", "gemini-2.0-flash")
-            try:
-                url = (
-                    f"https://generativelanguage.googleapis.com/v1beta/models/"
-                    f"{model}:generateContent?key={settings.GEMINI_API_KEY}"
-                )
-                payload = {
-                    "contents": [{
-                        "parts": [{"text": f"{system_prompt}\n\nUSER REQUEST:\n{user_prompt}"}]
-                    }],
-                    "generationConfig": {"temperature": temperature}
-                }
-                res = requests.post(url, json=payload, timeout=60)
-                if res.status_code == 200:
-                    data = res.json()
-                    print(f"[LLMFactory] ✅ Gemini {model} → {agent_role}")
-                    return data["candidates"][0]["content"]["parts"][0]["text"]
-                else:
-                    print(f"[LLMFactory] Gemini {res.status_code}: {res.text[:200]}")
-            except Exception as e:
-                print(f"[LLMFactory] Gemini Error: {e}")
 
         # ── 3. Try Anthropic Claude ──────────────────────────────────────────
         if settings.ANTHROPIC_API_KEY:
@@ -109,7 +110,7 @@ class LLMFactory:
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    print(f"[LLMFactory] ✅ Claude {model} → {agent_role}")
+                    print(f"[LLMFactory] [OK] Claude {model} -> {agent_role}")
                     return data["content"][0]["text"]
                 else:
                     print(f"[LLMFactory] Anthropic {res.status_code}: {res.text[:200]}")
@@ -117,7 +118,7 @@ class LLMFactory:
                 print(f"[LLMFactory] Anthropic Error: {e}")
 
         # ── 4. Smart Fallback (offline / no keys) ────────────────────────────
-        print(f"[LLMFactory] ⚠️  No API key active — using smart demo fallback for {agent_role}")
+        print(f"[LLMFactory] [FALLBACK] Using smart demo fallback for {agent_role}")
         return LLMFactory._generate_smart_fallback(system_prompt, user_prompt, agent_role)
 
     # ── Demo Fallback Responses ───────────────────────────────────────────────

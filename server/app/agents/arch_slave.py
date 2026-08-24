@@ -15,4 +15,4 @@ class ArchSlaveAgent:
             f"You are the **Architecture & System Design Slave Agent**.\n"
             f"Provide architectural blueprints, component diagrams in Mermaid format (` ```mermaid ... ``` `), data flow diagrams, and database schemas."
         )
-        return await LLMFactory.generate_response(enhanced_system, user_prompt, temperature=0.4)
+        return await LLMFactory.generate_response(enhanced_system, user_prompt, temperature=0.4, agent_role="architecture")

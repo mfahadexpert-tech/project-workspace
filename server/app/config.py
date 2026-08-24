@@ -20,27 +20,31 @@ class Settings:
     # ── Model Routing Map ──────────────────────────────────────
     # Supervisor: fastest/cheapest model for routing decisions
     SUPERVISOR_MODEL: str = "gpt-4o-mini"
-    SUPERVISOR_MODEL_GEMINI: str = "gemini-2.0-flash"
+    SUPERVISOR_MODEL_GEMINI: str = "gemini-3.6-flash"
 
     # Coding Agent: best code-generation model
     CODING_MODEL: str = "gpt-4o"
     CODING_MODEL_FALLBACK: str = "claude-3-5-sonnet-20241022"
+    CODING_MODEL_GEMINI: str = "gemini-3.6-flash"
 
     # Architecture Agent: best at long-form reasoning & diagrams
     ARCH_MODEL: str = "claude-3-5-sonnet-20241022"
     ARCH_MODEL_FALLBACK: str = "gpt-4o"
+    ARCH_MODEL_GEMINI: str = "gemini-3.6-flash"
 
     # RAG / Research Agent: best for large-context document reading
-    RAG_MODEL: str = "gemini-1.5-pro"
+    RAG_MODEL: str = "gemini-3.6-flash"
     RAG_MODEL_FALLBACK: str = "gpt-4o"
+    RAG_MODEL_GEMINI: str = "gemini-3.6-flash"
 
     # QA / Security Agent: best at analysis & audit
     QA_MODEL: str = "claude-3-5-sonnet-20241022"
     QA_MODEL_FALLBACK: str = "gpt-4o"
+    QA_MODEL_GEMINI: str = "gemini-3.6-flash"
 
     # Personal Assistant: lightweight everyday helper
     ASSISTANT_MODEL: str = "gpt-4o-mini"
-    ASSISTANT_MODEL_GEMINI: str = "gemini-2.0-flash"
+    ASSISTANT_MODEL_GEMINI: str = "gemini-3.6-flash"
 
     # Legacy single-model setting (kept for compatibility)
     DEFAULT_MODEL: str = os.getenv("DEFAULT_MODEL", "gpt-4o-mini")

@@ -15,4 +15,4 @@ class CodingSlaveAgent:
             f"You are the **Coding & Execution Slave Agent**.\n"
             f"Provide clean, well-structured, production-ready code with language labels, imports, and execution instructions."
         )
-        return await LLMFactory.generate_response(enhanced_system, user_prompt, temperature=0.2)
+        return await LLMFactory.generate_response(enhanced_system, user_prompt, temperature=0.2, agent_role="coding")
