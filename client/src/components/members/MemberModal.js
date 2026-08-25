@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { addProjectMember } from '../../lib/api';
 
@@ -32,27 +34,27 @@ export default function MemberModal({ project, show, onClose, onMemberAdded }) {
   };
 
   return (
-    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+    <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 1080 }}>
       <div className="modal-dialog modal-dialog-centered">
-        <div className="modal-content dark-card border-secondary">
-          <div className="modal-header border-secondary">
-            <h5 className="modal-title text-white fw-bold">
-              <i className="bi bi-people-fill text-cyan me-2"></i>
+        <div className="modal-content dark-card border-secondary text-light shadow-2xl">
+          <div className="modal-header dark-card-header">
+            <h5 className="modal-title text-white fw-bold d-flex align-items-center gap-2">
+              <i className="bi bi-people-fill text-cyan"></i>
               Project Collaboration & Team Members
             </h5>
             <button className="btn-close btn-close-white" onClick={onClose}></button>
           </div>
-          <div className="modal-body">
+          <div className="modal-body p-4">
             {/* Existing Members */}
-            <h6 className="text-cyan mb-2" style={{ fontSize: '0.85rem' }}>Current Team Members</h6>
-            <div className="mb-3 bg-dark p-2 rounded border border-secondary">
+            <h6 className="text-cyan mb-2 fw-bold" style={{ fontSize: '0.88rem' }}>Current Team Members</h6>
+            <div className="mb-4 bg-dark p-2 rounded-3 border border-secondary border-opacity-30">
               {project?.members?.map((m) => (
-                <div key={m.id} className="d-flex justify-content-between align-items-center p-2 border-bottom border-secondary last-border-0">
+                <div key={m.id} className="d-flex justify-content-between align-items-center p-2 border-bottom border-secondary border-opacity-25 last-border-0">
                   <div>
-                    <strong className="text-white d-block">{m.user_name}</strong>
-                    <small className="text-muted">{m.user_email}</small>
+                    <strong className="text-white d-block" style={{ fontSize: '0.88rem' }}>{m.user_name}</strong>
+                    <small className="text-secondary" style={{ fontSize: '0.76rem' }}>{m.user_email}</small>
                   </div>
-                  <span className={`badge ${m.role === 'owner' ? 'bg-primary' : 'bg-secondary'}`}>
+                  <span className={`badge ${m.role === 'owner' ? 'bg-primary' : 'bg-secondary bg-opacity-40 text-light border border-secondary'}`}>
                     {m.role.toUpperCase()}
                   </span>
                 </div>
@@ -61,11 +63,11 @@ export default function MemberModal({ project, show, onClose, onMemberAdded }) {
 
             {/* Invite Form */}
             <form onSubmit={handleSubmit}>
-              <h6 className="text-white mb-2" style={{ fontSize: '0.85rem' }}>Invite New Team Member</h6>
+              <h6 className="text-white mb-2 fw-bold" style={{ fontSize: '0.88rem' }}>Invite New Team Member</h6>
               <div className="mb-2">
                 <input
                   type="text"
-                  className="form-control dark-input form-control-sm"
+                  className="form-control dark-input form-control-sm py-2"
                   placeholder="Full Name (e.g. John Architect)"
                   value={userName}
                   onChange={(e) => setUserName(e.target.value)}
@@ -75,8 +77,8 @@ export default function MemberModal({ project, show, onClose, onMemberAdded }) {
               <div className="mb-2">
                 <input
                   type="email"
-                  className="form-control dark-input form-control-sm"
-                  placeholder="Email Address"
+                  className="form-control dark-input form-control-sm py-2"
+                  placeholder="Email Address (e.g. john@company.com)"
                   value={userEmail}
                   onChange={(e) => setUserEmail(e.target.value)}
                   required
@@ -84,7 +86,7 @@ export default function MemberModal({ project, show, onClose, onMemberAdded }) {
               </div>
               <div className="mb-3">
                 <select
-                  className="form-select dark-input form-select-sm"
+                  className="form-select dark-input form-select-sm py-2"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                 >
@@ -93,7 +95,7 @@ export default function MemberModal({ project, show, onClose, onMemberAdded }) {
                   <option value="owner">Co-Owner</option>
                 </select>
               </div>
-              <button type="submit" className="btn btn-primary btn-sm w-100 fw-bold" disabled={loading}>
+              <button type="submit" className="btn btn-cyan w-100 py-2 mt-2" disabled={loading}>
                 {loading ? 'Adding Member...' : 'Add Team Member'}
               </button>
             </form>

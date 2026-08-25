@@ -10,11 +10,6 @@ const AVAILABLE_ICONS = [
   'bi-phone', 'bi-robot', 'bi-credit-card', 'bi-graph-up'
 ];
 
-const AVAILABLE_COLORS = [
-  '#3b82f6', '#06b6d4', '#10b981', '#8b5cf6',
-  '#ec4899', '#f59e0b', '#ef4444', '#6366f1', '#14b8a6'
-];
-
 export default function ClassesTab({ project, onSelectClassFilter }) {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,29 +78,33 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
   return (
     <div className="container-fluid p-0">
       {/* Header */}
-      <div className="d-flex align-items-center justify-content-between mb-4">
+      <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3 mb-4">
         <div>
-          <h4 className="fw-bold mb-1 text-white">Project Workstreams & Classes</h4>
-          <p className="text-muted small mb-0">
-            Configurable department classes & domain workstreams for project structure, permissions, and agent assignments.
+          <h4 className="fw-bold mb-1 text-white d-flex align-items-center gap-2">
+            <i className="bi bi-diagram-3-fill text-purple"></i>
+            Project Workstreams & Classes
+          </h4>
+          <p className="text-secondary small mb-0" style={{ fontSize: '0.88rem' }}>
+            Configurable domain workstreams for architectural separation, permissions, and specialized agent assignments.
           </p>
         </div>
-        <button className="btn btn-cyan text-dark font-bold d-flex align-items-center gap-2" onClick={() => setShowModal(true)}>
-          <i className="bi bi-plus-circle-fill"></i> + Add Class / Workstream
+        <button className="btn btn-cyan d-flex align-items-center gap-2 px-4 py-2" onClick={() => setShowModal(true)}>
+          <i className="bi bi-plus-circle-fill"></i>
+          <span>Add Workstream</span>
         </button>
       </div>
 
       {loading ? (
-        <div className="text-center py-5 text-muted">
+        <div className="text-center py-5 text-secondary">
           <div className="spinner-border spinner-border-sm text-cyan me-2" role="status"></div>
           <span>Loading project workstreams...</span>
         </div>
       ) : classes.length === 0 ? (
-        <div className="dark-card p-5 text-center text-muted">
+        <div className="dark-card p-5 text-center text-secondary">
           <i className="bi bi-diagram-3 fs-1 text-cyan d-block mb-3"></i>
-          <h5>No Workstreams Configured</h5>
-          <p className="small mb-3">Add workstreams like Frontend, Backend, Database, Mobile, or Machine Learning.</p>
-          <button className="btn btn-outline-cyan btn-sm" onClick={() => setShowModal(true)}>
+          <h5 className="text-white">No Workstreams Configured</h5>
+          <p className="small mb-4 text-secondary">Add workstreams like Frontend, Backend, Database, Mobile, or Machine Learning.</p>
+          <button className="btn btn-cyan px-4" onClick={() => setShowModal(true)}>
             + Add First Class
           </button>
         </div>
@@ -117,34 +116,36 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
                 <div>
                   {/* Top Bar */}
                   <div className="d-flex align-items-center justify-content-between mb-3">
-                    <div className="d-flex align-items-center gap-2">
+                    <div className="d-flex align-items-center gap-3">
                       <div
-                        className="rounded-3 d-flex align-items-center justify-content-center text-white"
-                        style={{ width: '42px', height: '42px', backgroundColor: cls.color }}
+                        className="rounded-3 d-flex align-items-center justify-content-center text-white shadow-sm flex-shrink-0"
+                        style={{ width: '44px', height: '44px', backgroundColor: cls.color || '#06b6d4', boxShadow: `0 0 14px ${cls.color || '#06b6d4'}40` }}
                       >
                         <i className={`bi ${cls.icon} fs-5`}></i>
                       </div>
                       <div>
-                        <h6 className="mb-0 fw-bold text-white">{cls.name}</h6>
-                        <small className="text-muted" style={{ fontSize: '0.72rem' }}>
-                          Priority: {cls.priority.toUpperCase()}
+                        <h6 className="mb-0 fw-bold text-white" style={{ fontSize: '0.98rem' }}>{cls.name}</h6>
+                        <small className="text-secondary fw-medium" style={{ fontSize: '0.74rem' }}>
+                          Priority: <strong className="text-white">{cls.priority?.toUpperCase() || 'MEDIUM'}</strong>
                         </small>
                       </div>
                     </div>
                     <button
-                      className="btn btn-xs text-muted text-hover-danger p-1"
-                      title="Delete class"
+                      className="btn btn-sm btn-outline-danger p-1 px-2"
+                      title="Delete workstream"
                       onClick={() => handleDeleteClass(cls.id, cls.name)}
                     >
                       <i className="bi bi-trash"></i>
                     </button>
                   </div>
 
-                  <p className="text-muted small mb-3">{cls.description || 'No description provided.'}</p>
+                  <p className="text-secondary small mb-3" style={{ fontSize: '0.85rem', lineHeight: '1.55' }}>
+                    {cls.description || 'No description provided.'}
+                  </p>
 
                   {/* Assigned Agent */}
-                  <div className="p-2 rounded bg-dark border border-secondary mb-3">
-                    <small className="text-muted d-block" style={{ fontSize: '0.7rem' }}>ASSIGNED AI AGENT</small>
+                  <div className="p-3 rounded-3 bg-dark border border-secondary border-opacity-30 mb-3">
+                    <small className="text-secondary fw-bold d-block mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>ASSIGNED AI SPECIALIST</small>
                     <span className="badge badge-supervisor mt-1" style={{ fontSize: '0.75rem' }}>
                       <i className="bi bi-robot"></i> {cls.assigned_agent}
                     </span>
@@ -152,21 +153,25 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
 
                   {cls.instructions && (
                     <div className="mb-3">
-                      <small className="text-muted d-block" style={{ fontSize: '0.7rem' }}>CLASS INSTRUCTIONS</small>
-                      <small className="text-light" style={{ fontSize: '0.78rem' }}>{cls.instructions}</small>
+                      <small className="text-secondary fw-bold d-block mb-1" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>WORKSTREAM INSTRUCTIONS</small>
+                      <small className="text-light d-block p-2 bg-dark rounded border border-secondary border-opacity-30" style={{ fontSize: '0.8rem' }}>
+                        {cls.instructions}
+                      </small>
                     </div>
                   )}
                 </div>
 
                 {/* Card Action Footer */}
-                <div className="pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
-                  <span className="badge bg-secondary text-light" style={{ fontSize: '0.7rem' }}>Active Workstream</span>
+                <div className="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                  <span className="badge bg-secondary bg-opacity-30 text-light border border-secondary border-opacity-30" style={{ fontSize: '0.72rem' }}>
+                    Active Workstream
+                  </span>
                   <button
-                    className="btn btn-xs btn-outline-cyan px-2 py-1"
-                    style={{ fontSize: '0.75rem' }}
+                    className="btn btn-sm btn-outline-cyan px-3 py-1"
+                    style={{ fontSize: '0.78rem' }}
                     onClick={() => onSelectClassFilter && onSelectClassFilter(cls)}
                   >
-                    Filter Workspace <i className="bi bi-arrow-right"></i>
+                    Filter Chats <i className="bi bi-arrow-right ms-1"></i>
                   </button>
                 </div>
               </div>
@@ -177,12 +182,12 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
 
       {/* Add Class Modal */}
       {showModal && (
-        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}>
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 1080 }}>
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content dark-card border-secondary text-light">
-              <div className="modal-header dark-card-header border-secondary">
-                <h5 className="modal-title fw-bold text-white">
-                  <i className="bi bi-diagram-3 text-cyan me-2"></i> Add New Workstream / Class
+            <div className="modal-content dark-card border-secondary text-light shadow-2xl">
+              <div className="modal-header dark-card-header">
+                <h5 className="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                  <i className="bi bi-diagram-3 text-cyan"></i> Add New Workstream / Class
                 </h5>
                 <button type="button" className="btn-close btn-close-white" onClick={() => setShowModal(false)}></button>
               </div>
@@ -190,7 +195,7 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
               <form onSubmit={handleCreateClass}>
                 <div className="modal-body p-4">
                   <div className="mb-3">
-                    <label className="form-label small fw-bold">Workstream Class Name *</label>
+                    <label className="form-label small fw-bold text-white">Workstream Class Name *</label>
                     <input
                       type="text"
                       className="form-control dark-input"
@@ -202,7 +207,7 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label small fw-bold">Description</label>
+                    <label className="form-label small fw-bold text-white">Description</label>
                     <textarea
                       className="form-control dark-input"
                       rows="2"
@@ -214,7 +219,7 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
 
                   <div className="row g-3 mb-3">
                     <div className="col-6">
-                      <label className="form-label small fw-bold">Icon</label>
+                      <label className="form-label small fw-bold text-white">Icon</label>
                       <select className="form-select dark-input" value={icon} onChange={(e) => setIcon(e.target.value)}>
                         {AVAILABLE_ICONS.map((ic) => (
                           <option key={ic} value={ic}>{ic.replace('bi-', '')}</option>
@@ -222,7 +227,7 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
                       </select>
                     </div>
                     <div className="col-6">
-                      <label className="form-label small fw-bold">Theme Color</label>
+                      <label className="form-label small fw-bold text-white">Theme Color</label>
                       <input
                         type="color"
                         className="form-control dark-input form-control-color w-100"
@@ -233,7 +238,7 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label small fw-bold">Assigned Specialist AI Agent</label>
+                    <label className="form-label small fw-bold text-white">Assigned Specialist AI Agent</label>
                     <select className="form-select dark-input" value={assignedAgent} onChange={(e) => setAssignedAgent(e.target.value)}>
                       <option value="Coding & Execution Agent (Slave-1)">Coding & Execution Agent (Slave-1)</option>
                       <option value="Architecture & System Design Agent (Slave-2)">Architecture & System Design Agent (Slave-2)</option>
@@ -245,7 +250,7 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label small fw-bold">Class-Specific AI Instructions</label>
+                    <label className="form-label small fw-bold text-white">Class-Specific AI Instructions</label>
                     <textarea
                       className="form-control dark-input"
                       rows="2"
@@ -256,11 +261,11 @@ export default function ClassesTab({ project, onSelectClassFilter }) {
                   </div>
                 </div>
 
-                <div className="modal-footer border-secondary">
-                  <button type="button" className="btn btn-outline-secondary" onClick={() => setShowModal(false)}>
+                <div className="modal-footer border-secondary border-opacity-25 p-3">
+                  <button type="button" className="btn btn-outline-glass px-4" onClick={() => setShowModal(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-cyan text-dark font-bold px-4" disabled={!name.trim()}>
+                  <button type="submit" className="btn btn-cyan px-4" disabled={!name.trim()}>
                     Create Class
                   </button>
                 </div>

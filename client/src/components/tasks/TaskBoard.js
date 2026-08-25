@@ -108,22 +108,22 @@ export default function TaskBoard({ project }) {
   };
 
   const kanbanColumns = [
-    { id: 'todo', name: 'To Do', color: '#9ca3af', icon: 'bi-circle' },
-    { id: 'in_progress', name: 'In Progress', color: '#3b82f6', icon: 'bi-arrow-repeat' },
-    { id: 'completed', name: 'Completed', color: '#10b981', icon: 'bi-check-circle-fill' },
-    { id: 'blocked', name: 'Blocked', color: '#ef4444', icon: 'bi-exclamation-octagon-fill' },
+    { id: 'todo', name: 'To Do', color: '#38bdf8', icon: 'bi-circle' },
+    { id: 'in_progress', name: 'In Progress', color: '#60a5fa', icon: 'bi-arrow-repeat' },
+    { id: 'completed', name: 'Completed', color: '#34d399', icon: 'bi-check-circle-fill' },
+    { id: 'blocked', name: 'Blocked', color: '#fb7185', icon: 'bi-exclamation-octagon-fill' },
   ];
 
   return (
-    <div className="dark-card p-4">
+    <div className="dark-card p-4 p-lg-5">
       {/* Header & Controls */}
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
-          <h5 className="text-white mb-1 fw-bold">
-            <i className="bi bi-kanban-fill text-cyan me-2"></i>
+          <h4 className="text-white mb-1 fw-bold d-flex align-items-center gap-2">
+            <i className="bi bi-kanban-fill text-cyan"></i>
             Tasks, Goals & Project Planning
-          </h5>
-          <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
+          </h4>
+          <p className="text-secondary mb-0" style={{ fontSize: '0.88rem' }}>
             Manage workstream tasks, assigned members, Kanban status, and AI subtask breakdowns.
           </p>
         </div>
@@ -132,19 +132,19 @@ export default function TaskBoard({ project }) {
           {/* View Selector */}
           <div className="btn-group btn-group-sm">
             <button
-              className={`btn ${viewMode === 'kanban' ? 'btn-primary' : 'btn-outline-secondary'}`}
+              className={`btn px-3 py-1 fw-semibold ${viewMode === 'kanban' ? 'btn-cyan' : 'btn-outline-glass'}`}
               onClick={() => setViewMode('kanban')}
             >
               <i className="bi bi-kanban me-1"></i> Kanban
             </button>
             <button
-              className={`btn ${viewMode === 'list' ? 'btn-primary' : 'btn-outline-secondary'}`}
+              className={`btn px-3 py-1 fw-semibold ${viewMode === 'list' ? 'btn-cyan' : 'btn-outline-glass'}`}
               onClick={() => setViewMode('list')}
             >
               <i className="bi bi-list-ul me-1"></i> List
             </button>
             <button
-              className={`btn ${viewMode === 'timeline' ? 'btn-primary' : 'btn-outline-secondary'}`}
+              className={`btn px-3 py-1 fw-semibold ${viewMode === 'timeline' ? 'btn-cyan' : 'btn-outline-glass'}`}
               onClick={() => setViewMode('timeline')}
             >
               <i className="bi bi-calendar3 me-1"></i> Timeline
@@ -152,13 +152,13 @@ export default function TaskBoard({ project }) {
           </div>
 
           {/* AI Task Generator Trigger */}
-          <button className="btn btn-sm btn-purple text-light fw-bold" onClick={() => setShowAIModal(true)} style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)' }}>
-            <i className="bi bi-stars me-1"></i> AI Breakdown
+          <button className="btn btn-sm btn-purple px-3 py-1 d-flex align-items-center gap-1" onClick={() => setShowAIModal(true)}>
+            <i className="bi bi-stars"></i> AI Breakdown
           </button>
 
           {/* My Tasks Filter */}
           <button
-            className={`btn btn-sm ${myTasksOnly ? 'btn-cyan text-dark font-bold' : 'btn-outline-secondary text-light'}`}
+            className={`btn btn-sm px-3 py-1 ${myTasksOnly ? 'btn-cyan' : 'btn-outline-glass'}`}
             onClick={() => setMyTasksOnly(!myTasksOnly)}
           >
             <i className="bi bi-person-fill me-1"></i> My Tasks
@@ -168,9 +168,10 @@ export default function TaskBoard({ project }) {
 
       {/* Class Filter Bar */}
       <div className="d-flex align-items-center gap-2 mb-4 overflow-auto pb-2">
-        <span className="text-muted small fw-bold me-2">Workstream:</span>
+        <span className="text-secondary small fw-bold me-1">Filter:</span>
         <button
-          className={`btn btn-xs rounded-pill ${!selectedClass ? 'btn-cyan text-dark font-bold' : 'btn-outline-secondary text-light'}`}
+          className={`btn btn-xs rounded-pill px-3 py-1 ${!selectedClass ? 'btn-cyan' : 'btn-outline-glass'}`}
+          style={{ fontSize: '0.78rem' }}
           onClick={() => setSelectedClass('')}
         >
           All Classes
@@ -178,7 +179,8 @@ export default function TaskBoard({ project }) {
         {classes.map((cls) => (
           <button
             key={cls.id}
-            className={`btn btn-xs rounded-pill ${selectedClass === cls.id ? 'btn-cyan text-dark font-bold' : 'btn-outline-secondary text-light'}`}
+            className={`btn btn-xs rounded-pill px-3 py-1 ${selectedClass === cls.id ? 'btn-cyan' : 'btn-outline-glass'}`}
+            style={{ fontSize: '0.78rem' }}
             onClick={() => setSelectedClass(cls.id)}
           >
             <i className={`bi ${cls.icon} me-1`}></i> {cls.name}
@@ -187,12 +189,12 @@ export default function TaskBoard({ project }) {
       </div>
 
       {/* Quick Add Form */}
-      <form onSubmit={handleAddTask} className="mb-4 bg-dark p-3 rounded border border-secondary">
+      <form onSubmit={handleAddTask} className="mb-4 bg-dark p-3 rounded-3 border border-secondary border-opacity-30">
         <div className="row g-2 align-items-center">
           <div className="col-12 col-md-4">
             <input
               type="text"
-              className="form-control dark-input form-control-sm"
+              className="form-control dark-input form-control-sm py-2"
               placeholder="Task Title (e.g. Implement OAuth JWT Refresh)"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -200,7 +202,7 @@ export default function TaskBoard({ project }) {
             />
           </div>
           <div className="col-12 col-md-3">
-            <select className="form-select dark-input form-select-sm" value={classId} onChange={(e) => setClassId(e.target.value)}>
+            <select className="form-select dark-input form-select-sm py-2" value={classId} onChange={(e) => setClassId(e.target.value)}>
               <option value="">-- Assign Workstream --</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -208,15 +210,15 @@ export default function TaskBoard({ project }) {
             </select>
           </div>
           <div className="col-6 col-md-2">
-            <select className="form-select dark-input form-select-sm" value={priority} onChange={(e) => setPriority(e.target.value)}>
+            <select className="form-select dark-input form-select-sm py-2" value={priority} onChange={(e) => setPriority(e.target.value)}>
               <option value="low">Low Priority</option>
               <option value="medium">Medium Priority</option>
               <option value="high">High Priority</option>
             </select>
           </div>
           <div className="col-6 col-md-3">
-            <button type="submit" className="btn btn-sm btn-primary w-100 fw-bold">
-              + Add Task
+            <button type="submit" className="btn btn-sm btn-cyan w-100 py-2">
+              <i className="bi bi-plus-lg me-1"></i> Add Task
             </button>
           </div>
         </div>
@@ -231,46 +233,52 @@ export default function TaskBoard({ project }) {
               <div key={col.id} className="col-12 col-md-6 col-lg-3">
                 <div className="kanban-col">
                   {/* Column Header */}
-                  <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary">
-                    <span className="fw-bold text-white d-flex align-items-center gap-2" style={{ fontSize: '0.9rem' }}>
+                  <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-secondary border-opacity-25">
+                    <span className="fw-bold text-white d-flex align-items-center gap-2" style={{ fontSize: '0.94rem' }}>
                       <i className={`bi ${col.icon}`} style={{ color: col.color }}></i> {col.name}
                     </span>
-                    <span className="badge bg-dark border border-secondary text-muted" style={{ fontSize: '0.75rem' }}>
+                    <span className="badge bg-dark border border-secondary border-opacity-40 text-secondary" style={{ fontSize: '0.75rem' }}>
                       {colTasks.length}
                     </span>
                   </div>
 
                   {/* Task Cards */}
                   {colTasks.length === 0 ? (
-                    <div className="text-center text-muted py-4 small opacity-50">No tasks</div>
+                    <div className="text-center text-secondary py-5 small opacity-50">No tasks in this column</div>
                   ) : (
                     colTasks.map((t) => (
                       <div key={t.id} className="kanban-task-card">
                         <div className="d-flex align-items-center justify-content-between mb-2">
                           <span
-                            className={`badge ${t.priority === 'high' ? 'bg-danger' : t.priority === 'medium' ? 'bg-warning text-dark' : 'bg-info text-dark'}`}
-                            style={{ fontSize: '0.65rem' }}
+                            className={`badge ${
+                              t.priority === 'high'
+                                ? 'bg-danger bg-opacity-20 text-rose border border-danger'
+                                : t.priority === 'medium'
+                                ? 'bg-warning bg-opacity-20 text-amber border border-warning'
+                                : 'bg-info bg-opacity-20 text-cyan border border-info'
+                            }`}
+                            style={{ fontSize: '0.68rem' }}
                           >
                             {t.priority.toUpperCase()}
                           </span>
-                          <button className="btn btn-xs text-muted text-hover-danger p-0" onClick={() => handleDeleteTask(t.id)}>
+                          <button className="btn btn-xs btn-outline-danger p-0 px-1" onClick={() => handleDeleteTask(t.id)}>
                             <i className="bi bi-trash"></i>
                           </button>
                         </div>
 
-                        <h6 className="fw-bold text-white mb-1" style={{ fontSize: '0.88rem' }}>{t.title}</h6>
-                        {t.description && <p className="text-muted small mb-2 text-truncate" style={{ fontSize: '0.78rem' }}>{t.description}</p>}
+                        <h6 className="fw-bold text-white mb-2" style={{ fontSize: '0.92rem' }}>{t.title}</h6>
+                        {t.description && <p className="text-secondary small mb-2 text-truncate" style={{ fontSize: '0.82rem' }}>{t.description}</p>}
 
-                        <div className="d-flex align-items-center justify-content-between pt-2 mt-2 border-top border-secondary text-muted" style={{ fontSize: '0.72rem' }}>
-                          <span><i className="bi bi-person me-1"></i>{t.assigned_to}</span>
+                        <div className="d-flex align-items-center justify-content-between pt-2 mt-2 border-top border-secondary border-opacity-25 text-secondary" style={{ fontSize: '0.75rem' }}>
+                          <span><i className="bi bi-person me-1 text-cyan"></i>{t.assigned_to}</span>
                           <div className="btn-group btn-group-xs">
                             {col.id !== 'todo' && (
-                              <button className="btn btn-xs btn-outline-secondary py-0 px-1" title="Move Left" onClick={() => handleStatusChange(t.id, col.id === 'in_progress' ? 'todo' : 'in_progress')}>
+                              <button className="btn btn-xs btn-outline-glass py-0 px-2" title="Move Left" onClick={() => handleStatusChange(t.id, col.id === 'in_progress' ? 'todo' : 'in_progress')}>
                                 ◀
                               </button>
                             )}
                             {col.id !== 'completed' && (
-                              <button className="btn btn-xs btn-outline-secondary py-0 px-1" title="Move Right" onClick={() => handleStatusChange(t.id, col.id === 'todo' ? 'in_progress' : 'completed')}>
+                              <button className="btn btn-xs btn-outline-glass py-0 px-2" title="Move Right" onClick={() => handleStatusChange(t.id, col.id === 'todo' ? 'in_progress' : 'completed')}>
                                 ▶
                               </button>
                             )}
@@ -291,7 +299,7 @@ export default function TaskBoard({ project }) {
         <div className="table-responsive">
           <table className="table table-dark table-hover align-middle">
             <thead>
-              <tr>
+              <tr className="text-secondary border-secondary border-opacity-25">
                 <th>Status</th>
                 <th>Task Title & Details</th>
                 <th>Priority</th>
@@ -301,18 +309,18 @@ export default function TaskBoard({ project }) {
             </thead>
             <tbody>
               {tasks.map((t) => (
-                <tr key={t.id}>
+                <tr key={t.id} className="border-secondary border-opacity-25">
                   <td>
-                    <span className={`badge ${t.status === 'completed' ? 'bg-success' : t.status === 'in_progress' ? 'bg-primary' : t.status === 'blocked' ? 'bg-danger' : 'bg-secondary'}`}>
+                    <span className={`badge ${t.status === 'completed' ? 'bg-success bg-opacity-20 text-emerald border border-success' : t.status === 'in_progress' ? 'bg-primary bg-opacity-20 text-cyan border border-primary' : t.status === 'blocked' ? 'bg-danger bg-opacity-20 text-rose border border-danger' : 'bg-secondary bg-opacity-30 text-secondary'}`}>
                       {t.status.toUpperCase()}
                     </span>
                   </td>
                   <td>
                     <strong className="text-white d-block">{t.title}</strong>
-                    {t.description && <small className="text-muted">{t.description}</small>}
+                    {t.description && <small className="text-secondary">{t.description}</small>}
                   </td>
                   <td>
-                    <span className={`badge ${t.priority === 'high' ? 'bg-danger' : 'bg-warning text-dark'}`}>
+                    <span className={`badge ${t.priority === 'high' ? 'bg-danger bg-opacity-20 text-rose' : 'bg-warning bg-opacity-20 text-amber'}`}>
                       {t.priority.toUpperCase()}
                     </span>
                   </td>
@@ -331,17 +339,17 @@ export default function TaskBoard({ project }) {
 
       {/* VIEW 3: TIMELINE ROADMAP VIEW */}
       {viewMode === 'timeline' && (
-        <div className="p-4 bg-dark rounded border border-secondary text-light">
+        <div className="p-4 bg-dark rounded-3 border border-secondary border-opacity-30 text-light">
           <h6 className="fw-bold text-white mb-3"><i className="bi bi-clock-history text-cyan me-2"></i> Project Roadmap Timeline</h6>
           <div className="timeline-list border-start border-cyan ms-3 ps-3">
-            {tasks.map((t, idx) => (
+            {tasks.map((t) => (
               <div key={t.id} className="mb-4 position-relative">
-                <div className="position-absolute top-0 start-0 translate-middle-x rounded-circle bg-cyan" style={{ width: '12px', height: '12px', marginLeft: '-19px', marginTop: '4px' }}></div>
+                <div className="position-absolute top-0 start-0 translate-middle-x rounded-circle bg-cyan shadow-sm" style={{ width: '14px', height: '14px', marginLeft: '-20px', marginTop: '4px', boxShadow: '0 0 10px rgba(6, 182, 212, 0.5)' }}></div>
                 <h6 className="fw-bold text-white mb-1">{t.title}</h6>
-                <small className="text-muted d-block mb-1">{t.description || 'Sprint task item'}</small>
+                <small className="text-secondary d-block mb-2">{t.description || 'Sprint task item'}</small>
                 <div className="d-flex gap-2 align-items-center">
-                  <span className="badge bg-secondary" style={{ fontSize: '0.68rem' }}>Status: {t.status}</span>
-                  <span className="text-cyan small" style={{ fontSize: '0.72rem' }}>Assignee: {t.assigned_to}</span>
+                  <span className="badge bg-dark border border-secondary border-opacity-40 text-secondary" style={{ fontSize: '0.72rem' }}>Status: {t.status}</span>
+                  <span className="text-cyan small fw-semibold" style={{ fontSize: '0.76rem' }}>Assignee: {t.assigned_to}</span>
                 </div>
               </div>
             ))}
@@ -351,22 +359,22 @@ export default function TaskBoard({ project }) {
 
       {/* AI Breakdown Modal */}
       {showAIModal && (
-        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}>
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 1080 }}>
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content dark-card border-secondary text-light">
-              <div className="modal-header dark-card-header border-secondary">
-                <h5 className="modal-title fw-bold text-white">
-                  <i className="bi bi-stars text-purple me-2"></i> AI Task & Epic Breakdown
+            <div className="modal-content dark-card border-secondary text-light shadow-2xl">
+              <div className="modal-header dark-card-header">
+                <h5 className="modal-title fw-bold text-white d-flex align-items-center gap-2">
+                  <i className="bi bi-stars text-purple"></i> AI Task & Epic Breakdown
                 </h5>
                 <button type="button" className="btn-close btn-close-white" onClick={() => setShowAIModal(false)}></button>
               </div>
               <form onSubmit={handleAIBreakdown}>
                 <div className="modal-body p-4">
-                  <p className="text-muted small mb-3">
-                    Describe a high-level project goal or feature. The Supervisor PM Agent will automatically break it into actionable subtasks.
+                  <p className="text-secondary small mb-3">
+                    Describe a high-level project goal or feature. The Supervisor PM Agent will automatically break it down into actionable subtasks.
                   </p>
                   <div className="mb-3">
-                    <label className="form-label small fw-bold">Goal or Requirement *</label>
+                    <label className="form-label small fw-bold text-white">Goal or Requirement *</label>
                     <textarea
                       className="form-control dark-input"
                       rows="3"
@@ -377,11 +385,11 @@ export default function TaskBoard({ project }) {
                     ></textarea>
                   </div>
                 </div>
-                <div className="modal-footer border-secondary">
-                  <button type="button" className="btn btn-outline-secondary" onClick={() => setShowAIModal(false)}>
+                <div className="modal-footer border-secondary border-opacity-25 p-3">
+                  <button type="button" className="btn btn-outline-glass px-4" onClick={() => setShowAIModal(false)}>
                     Cancel
                   </button>
-                  <button type="submit" className="btn btn-purple text-light font-bold px-4" disabled={aiLoading || !aiGoal.trim()} style={{ background: 'linear-gradient(135deg, #8b5cf6, #6366f1)' }}>
+                  <button type="submit" className="btn btn-purple px-4" disabled={aiLoading || !aiGoal.trim()}>
                     {aiLoading ? 'Generating Subtasks...' : 'Generate Tasks'}
                   </button>
                 </div>

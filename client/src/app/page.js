@@ -28,6 +28,7 @@ export default function WorkspaceHome() {
 
   // Active Navigation Tab: 'overview' | 'classes' | 'chats' | 'tasks' | 'artifacts' | 'knowledge' | 'memory'
   const [activeTab, setActiveTab] = useState('overview');
+  const [initialPrompt, setInitialPrompt] = useState('');
 
   // Drawer & Modals State
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
@@ -117,6 +118,27 @@ export default function WorkspaceHome() {
     }
   };
 
+  const handleLaunchPrompt = async (promptText) => {
+    if (!activeProject?.id) return;
+
+    if (!activeConversation) {
+      try {
+        const res = await createConversation({
+          project_id: activeProject.id,
+          title: promptText.slice(0, 30) + '...',
+          category: 'Coding',
+        });
+        setConversations((prev) => [res.data, ...prev]);
+        setActiveConversation(res.data);
+      } catch (err) {
+        console.error('Error auto-creating conversation for prompt:', err);
+      }
+    }
+
+    setInitialPrompt(promptText);
+    setActiveTab('chats');
+  };
+
   return (
     <div className="app-container">
       {/* Navbar */}
@@ -128,88 +150,93 @@ export default function WorkspaceHome() {
         onOpenSearch={() => setShowSearchModal(true)}
       />
 
-      <div className="container-fluid flex-grow-1 px-0">
-        <div className="row g-0 h-100">
-          {/* Left Sidebar */}
-          <div className="col-12 col-md-3 col-lg-2">
-            <Sidebar
-              projects={projects}
-              activeProject={activeProject}
-              onSelectProject={(p) => setActiveProject(p)}
-              activeTab={activeTab}
-              onSelectTab={(tab) => setActiveTab(tab)}
-              conversations={conversations}
-              activeConversation={activeConversation}
-              onSelectConversation={(c) => setActiveConversation(c)}
-              onNewConversation={handleNewConversation}
-              onOpenNewProject={() => setShowNewProjectModal(true)}
-            />
-          </div>
-
-          {/* Main Content Workspace Area */}
-          <div className="col-12 col-md-9 col-lg-10 p-3 p-lg-4" style={{ height: 'calc(100vh - 60px)', overflowY: 'auto' }}>
-            {activeProject ? (
-              <>
-                {activeTab === 'overview' && (
-                  <ProjectOverviewTab
-                    project={activeProject}
-                    classesCount={activeProject.classes?.length || 12}
-                    tasksCount={3}
-                    artifactsCount={1}
-                    onNavigateTab={(tab) => setActiveTab(tab)}
-                  />
-                )}
-
-                {activeTab === 'classes' && (
-                  <ClassesTab
-                    project={activeProject}
-                    onSelectClassFilter={() => setActiveTab('chats')}
-                  />
-                )}
-
-                {activeTab === 'chats' && (
-                  activeConversation ? (
-                    <ChatWindow conversation={activeConversation} project={activeProject} />
-                  ) : (
-                    <div className="dark-card p-5 text-center text-muted">
-                      <i className="bi bi-chat-dots fs-1 text-cyan d-block mb-3"></i>
-                      <h5>No Conversation Selected</h5>
-                      <button className="btn btn-cyan text-dark font-bold mt-2" onClick={handleNewConversation}>
-                        + Start New Conversation
-                      </button>
-                    </div>
-                  )
-                )}
-
-                {activeTab === 'tasks' && (
-                  <TaskBoard project={activeProject} />
-                )}
-
-                {activeTab === 'artifacts' && (
-                  <ArtifactViewer project={activeProject} />
-                )}
-
-                {activeTab === 'knowledge' && (
-                  <KnowledgeBase project={activeProject} />
-                )}
-
-                {activeTab === 'memory' && (
-                  <MemoryManager
-                    project={activeProject}
-                    onProjectUpdated={() => loadProjects(activeProject.id)}
-                  />
-                )}
-              </>
-            ) : (
-              <div className="dark-card p-5 text-center text-muted">
-                <h5>No Active Project Workspace</h5>
-                <button className="btn btn-cyan text-dark font-bold mt-3" onClick={() => setShowNewProjectModal(true)}>
-                  + Create Your First Developer Project Workspace
-                </button>
-              </div>
-            )}
-          </div>
+      <div className="d-flex flex-grow-1 position-relative overflow-hidden">
+        {/* Left Fixed/Fluid Sidebar Container */}
+        <div style={{ width: '270px', minWidth: '260px', maxWidth: '300px', flexShrink: 0 }}>
+          <Sidebar
+            projects={projects}
+            activeProject={activeProject}
+            onSelectProject={(p) => setActiveProject(p)}
+            activeTab={activeTab}
+            onSelectTab={(tab) => setActiveTab(tab)}
+            conversations={conversations}
+            activeConversation={activeConversation}
+            onSelectConversation={(c) => setActiveConversation(c)}
+            onNewConversation={handleNewConversation}
+            onOpenNewProject={() => setShowNewProjectModal(true)}
+          />
         </div>
+
+        {/* Main Content Workspace Area */}
+        <main className="flex-grow-1 p-3 p-lg-4" style={{ height: 'calc(100vh - 60px)', overflowY: 'auto' }}>
+          {activeProject ? (
+            <>
+              {activeTab === 'overview' && (
+                <ProjectOverviewTab
+                  project={activeProject}
+                  classesCount={activeProject.classes?.length || 12}
+                  tasksCount={3}
+                  artifactsCount={1}
+                  onNavigateTab={(tab) => setActiveTab(tab)}
+                  onLaunchPrompt={handleLaunchPrompt}
+                  onOpenMembersModal={() => setShowMemberModal(true)}
+                />
+              )}
+
+              {activeTab === 'classes' && (
+                <ClassesTab
+                  project={activeProject}
+                  onSelectClassFilter={() => setActiveTab('chats')}
+                />
+              )}
+
+              {activeTab === 'chats' && (
+                activeConversation ? (
+                  <ChatWindow
+                    conversation={activeConversation}
+                    project={activeProject}
+                    initialPrompt={initialPrompt}
+                    onClearInitialPrompt={() => setInitialPrompt('')}
+                  />
+                ) : (
+                  <div className="dark-card p-5 text-center text-muted">
+                    <i className="bi bi-chat-dots fs-1 text-cyan d-block mb-3"></i>
+                    <h5 className="text-white">No Conversation Selected</h5>
+                    <button className="btn btn-cyan text-dark font-bold mt-3 px-4" onClick={handleNewConversation}>
+                      + Start New Conversation
+                    </button>
+                  </div>
+                )
+              )}
+
+              {activeTab === 'tasks' && (
+                <TaskBoard project={activeProject} />
+              )}
+
+              {activeTab === 'artifacts' && (
+                <ArtifactViewer project={activeProject} />
+              )}
+
+              {activeTab === 'knowledge' && (
+                <KnowledgeBase project={activeProject} />
+              )}
+
+              {activeTab === 'memory' && (
+                <MemoryManager
+                  project={activeProject}
+                  onProjectUpdated={() => loadProjects(activeProject.id)}
+                />
+              )}
+            </>
+          ) : (
+            <div className="dark-card p-5 text-center text-muted">
+              <h5 className="text-white">No Active Project Workspace</h5>
+              <button className="btn btn-cyan text-dark font-bold mt-3 px-4" onClick={() => setShowNewProjectModal(true)}>
+                + Create Your First Developer Project Workspace
+              </button>
+            </div>
+          )}
+        </main>
       </div>
 
       {/* Persistent Floating Personal Assistant FAB Button */}
