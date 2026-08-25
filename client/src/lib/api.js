@@ -11,12 +11,16 @@ const api = axios.create({
 
 // Auth & Users
 export const getCurrentUser = () => api.get('/auth/me');
+export const switchActiveUser = (data) => api.post('/auth/switch-active-member', data);
 
 // Projects
 export const getProjects = () => api.get('/projects');
 export const createProject = (data) => api.post('/projects', data);
 export const updateProject = (id, data) => api.put(`/projects/${id}`, data);
+export const getProjectMembers = (id) => api.get(`/projects/${id}/members`);
 export const addProjectMember = (id, data) => api.post(`/projects/${id}/members`, data);
+export const updateProjectMember = (projectId, memberId, data) => api.put(`/projects/${projectId}/members/${memberId}`, data);
+export const deleteProjectMember = (projectId, memberId) => api.delete(`/projects/${projectId}/members/${memberId}`);
 
 // Classes / Workstreams
 export const getProjectClasses = (projectId) => api.get(`/projects/${projectId}/classes`);
@@ -29,8 +33,14 @@ export const getConversations = (projectId, classId = null) =>
   api.get(`/chats/project/${projectId}`, { params: { class_id: classId } });
 export const createConversation = (data) => api.post('/chats', data);
 export const getMessages = (conversationId) => api.get(`/chats/${conversationId}/messages`);
-export const sendMessage = (conversationId, content, senderName) =>
-  api.post(`/chats/${conversationId}/messages`, { conversation_id: conversationId, content, sender_name: senderName });
+export const sendMessage = (conversationId, content, senderName, senderMemberId = null, senderRole = null) =>
+  api.post(`/chats/${conversationId}/messages`, {
+    conversation_id: conversationId,
+    content,
+    sender_name: senderName,
+    sender_member_id: senderMemberId,
+    sender_role: senderRole
+  });
 export const convertMessageToTask = (messageId) => api.post(`/chats/messages/${messageId}/convert-to-task`);
 
 // Personal Assistant Drawer
@@ -75,5 +85,13 @@ export const restoreArtifactVersion = (artifactId, versionId) => api.post(`/arti
 // Global Search
 export const searchWorkspace = (query, projectId = null) =>
   api.get('/search', { params: { q: query, project_id: projectId } });
+
+// Activity Audit & Member History (Requirement 2)
+export const getActivityLogs = (projectId, params = {}) =>
+  api.get(`/activity/project/${projectId}`, { params });
+export const getRoleGroupedActivity = (projectId) =>
+  api.get(`/activity/project/${projectId}/grouped-by-role`);
+export const logActivity = (data) =>
+  api.post('/activity/log', data);
 
 export default api;

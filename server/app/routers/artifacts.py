@@ -25,6 +25,10 @@ async def list_artifacts(
 
 @router.post("/project/{project_id}", response_model=ArtifactResponse)
 async def create_artifact(project_id: str, payload: ArtifactCreate, db: AsyncSession = Depends(get_db)):
+    m_id = payload.created_by_member_id or "USR-LEAD-7K2M9A"
+    m_name = payload.created_by or "Alex Tech Lead"
+    m_role = "Frontend Developer" if "FE" in m_id else ("Backend Developer" if "BE" in m_id else "Developer")
+
     artifact = Artifact(
         project_id=project_id,
         class_id=payload.class_id,
@@ -34,7 +38,8 @@ async def create_artifact(project_id: str, payload: ArtifactCreate, db: AsyncSes
         language=payload.language,
         status=payload.status or "approved",
         change_summary=payload.change_summary or "Initial artifact creation",
-        created_by=payload.created_by or "AI Assistant"
+        created_by=m_name,
+        created_by_member_id=m_id
     )
     db.add(artifact)
     await db.flush()
@@ -45,16 +50,26 @@ async def create_artifact(project_id: str, payload: ArtifactCreate, db: AsyncSes
         version=1,
         content=payload.content,
         change_summary=payload.change_summary or "Initial artifact creation",
-        created_by=artifact.created_by
+        created_by=m_name,
+        created_by_member_id=m_id
     )
     db.add(ver)
 
     log = ActivityLog(
         project_id=project_id,
         class_id=payload.class_id,
-        user_name=artifact.created_by,
+        member_id=m_id,
+        member_name=m_name,
+        member_role=m_role,
+        artifact_id=artifact.id,
+        file_path=f"artifacts/{artifact.title}",
         action_type="artifact_created",
-        description=f"Created artifact '{artifact.title}' (v1)"
+        action_title=f"Created {artifact.artifact_type}: {artifact.title}",
+        description=f"Created {artifact.artifact_type} '{artifact.title}' (v1) by {m_name} [{m_id}]",
+        prev_version="None",
+        new_version="v1",
+        user_name=m_name,
+        user_member_id=m_id
     )
     db.add(log)
 
@@ -75,13 +90,16 @@ async def update_artifact(
     content: str,
     change_summary: Optional[str] = "Updated content",
     status: Optional[str] = None,
-    editor_name: Optional[str] = "Developer",
+    editor_name: Optional[str] = "Alex Tech Lead",
+    editor_member_id: Optional[str] = "USR-LEAD-7K2M9A",
+    editor_role: Optional[str] = "Developer",
     db: AsyncSession = Depends(get_db)
 ):
     artifact = await db.get(Artifact, artifact_id)
     if not artifact:
         raise HTTPException(status_code=404, detail="Artifact not found")
 
+    old_v = artifact.version
     artifact.content = content
     artifact.version += 1
     artifact.change_summary = change_summary
@@ -94,9 +112,32 @@ async def update_artifact(
         version=artifact.version,
         content=content,
         change_summary=change_summary,
-        created_by=editor_name or "Developer"
+        created_by=editor_name or "Developer",
+        created_by_member_id=editor_member_id
     )
     db.add(ver)
+
+    log = ActivityLog(
+        project_id=artifact.project_id,
+        class_id=artifact.class_id,
+        member_id=editor_member_id or "USR-LEAD-7K2M9A",
+        member_name=editor_name or "Alex Tech Lead",
+        member_role=editor_role or "Developer",
+        artifact_id=artifact.id,
+        file_path=f"artifacts/{artifact.title}",
+        action_type="code_change" if artifact.artifact_type == "code" else "doc_update",
+        action_title=f"Updated {artifact.title} (v{artifact.version})",
+        description=f"Changed {artifact.title}: {change_summary}",
+        prev_version=f"v{old_v}",
+        new_version=f"v{artifact.version}",
+        user_name=editor_name,
+        user_member_id=editor_member_id
+    )
+    db.add(log)
+
+    await db.commit()
+    await db.refresh(artifact)
+    return artifact
 
     log = ActivityLog(
         project_id=artifact.project_id,

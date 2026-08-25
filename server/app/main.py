@@ -9,7 +9,7 @@ from app.models import (
 )
 from app.routers import (
     projects, chats, files, memories, tasks, artifacts,
-    classes, personal_assistant, search, auth
+    classes, personal_assistant, search, auth, activity
 )
 
 app = FastAPI(
@@ -38,6 +38,7 @@ app.include_router(memories.router, prefix="/api")
 app.include_router(tasks.router, prefix="/api")
 app.include_router(artifacts.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
+app.include_router(activity.router, prefix="/api")
 
 @app.on_event("startup")
 async def startup_event():

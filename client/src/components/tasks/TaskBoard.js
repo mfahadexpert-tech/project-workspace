@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { getTasks, createTask, updateTask, deleteTask, generateAITasks, getProjectClasses } from '../../lib/api';
 
-export default function TaskBoard({ project }) {
+export default function TaskBoard({ project, currentUser }) {
   const [tasks, setTasks] = useState([]);
   const [classes, setClasses] = useState([]);
-  const [viewMode, setViewMode] = useState('kanban'); // 'kanban', 'list', 'timeline'
+  const [viewMode, setViewMode] = useState('kanban');
   const [selectedClass, setSelectedClass] = useState('');
   const [myTasksOnly, setMyTasksOnly] = useState(false);
 
@@ -15,7 +15,7 @@ export default function TaskBoard({ project }) {
   const [desc, setDesc] = useState('');
   const [priority, setPriority] = useState('medium');
   const [classId, setClassId] = useState('');
-  const [assignedTo, setAssignedTo] = useState(project?.owner_name || 'Alex Tech Lead');
+  const [assignedMemberId, setAssignedMemberId] = useState(currentUser?.public_member_id || '');
 
   // AI Breakdown Modal
   const [showAIModal, setShowAIModal] = useState(false);
@@ -33,7 +33,7 @@ export default function TaskBoard({ project }) {
     try {
       const params = {};
       if (selectedClass) params.class_id = selectedClass;
-      if (myTasksOnly) params.assigned_to = project?.owner_name || 'Alex Tech Lead';
+      if (myTasksOnly) params.assigned_to = currentUser?.full_name || project?.owner_name;
       const res = await getTasks(project.id, params);
       setTasks(res.data);
     } catch (err) {
@@ -54,6 +54,9 @@ export default function TaskBoard({ project }) {
     e.preventDefault();
     if (!title.trim()) return;
 
+    const matchedMember = project?.members?.find(m => m.public_member_id === assignedMemberId);
+    const assigneeName = matchedMember ? matchedMember.user_name : (currentUser?.full_name || 'Unassigned');
+
     try {
       await createTask(project.id, {
         title: title.trim(),
@@ -61,7 +64,8 @@ export default function TaskBoard({ project }) {
         priority,
         status: 'todo',
         class_id: classId || null,
-        assigned_to: assignedTo.trim() || 'Unassigned',
+        assigned_to: assigneeName,
+        assigned_member_id: assignedMemberId || currentUser?.public_member_id || null
       });
       setTitle('');
       setDesc('');
@@ -124,7 +128,7 @@ export default function TaskBoard({ project }) {
             Tasks, Goals & Project Planning
           </h4>
           <p className="text-secondary mb-0" style={{ fontSize: '0.88rem' }}>
-            Manage workstream tasks, assigned members, Kanban status, and AI subtask breakdowns.
+            Manage workstream tasks, assigned member IDs, Kanban status, and AI subtask breakdowns.
           </p>
         </div>
 
@@ -201,22 +205,36 @@ export default function TaskBoard({ project }) {
               required
             />
           </div>
-          <div className="col-12 col-md-3">
+          <div className="col-12 col-md-2">
             <select className="form-select dark-input form-select-sm py-2" value={classId} onChange={(e) => setClassId(e.target.value)}>
-              <option value="">-- Assign Workstream --</option>
+              <option value="">-- Workstream --</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
-          <div className="col-6 col-md-2">
-            <select className="form-select dark-input form-select-sm py-2" value={priority} onChange={(e) => setPriority(e.target.value)}>
-              <option value="low">Low Priority</option>
-              <option value="medium">Medium Priority</option>
-              <option value="high">High Priority</option>
+          <div className="col-12 col-md-3">
+            <select
+              className="form-select dark-input form-select-sm py-2"
+              value={assignedMemberId}
+              onChange={(e) => setAssignedMemberId(e.target.value)}
+            >
+              <option value="">Assign Member (By Member ID)</option>
+              {project?.members?.map((m) => (
+                <option key={m.id} value={m.public_member_id}>
+                  {m.user_name} ({m.role} • {m.public_member_id})
+                </option>
+              ))}
             </select>
           </div>
-          <div className="col-6 col-md-3">
+          <div className="col-6 col-md-1">
+            <select className="form-select dark-input form-select-sm py-2" value={priority} onChange={(e) => setPriority(e.target.value)}>
+              <option value="low">Low</option>
+              <option value="medium">Med</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div className="col-6 col-md-2">
             <button type="submit" className="btn btn-sm btn-cyan w-100 py-2">
               <i className="bi bi-plus-lg me-1"></i> Add Task
             </button>
@@ -270,7 +288,13 @@ export default function TaskBoard({ project }) {
                         {t.description && <p className="text-secondary small mb-2 text-truncate" style={{ fontSize: '0.82rem' }}>{t.description}</p>}
 
                         <div className="d-flex align-items-center justify-content-between pt-2 mt-2 border-top border-secondary border-opacity-25 text-secondary" style={{ fontSize: '0.75rem' }}>
-                          <span><i className="bi bi-person me-1 text-cyan"></i>{t.assigned_to}</span>
+                          <div className="d-flex align-items-center gap-1">
+                            <i className="bi bi-person-badge text-cyan"></i>
+                            <span className="text-white fw-semibold">{t.assigned_to}</span>
+                            {t.assigned_member_id && (
+                              <code className="text-cyan ms-1" style={{ fontSize: '0.65rem' }}>{t.assigned_member_id}</code>
+                            )}
+                          </div>
                           <div className="btn-group btn-group-xs">
                             {col.id !== 'todo' && (
                               <button className="btn btn-xs btn-outline-glass py-0 px-2" title="Move Left" onClick={() => handleStatusChange(t.id, col.id === 'in_progress' ? 'todo' : 'in_progress')}>
@@ -303,7 +327,7 @@ export default function TaskBoard({ project }) {
                 <th>Status</th>
                 <th>Task Title & Details</th>
                 <th>Priority</th>
-                <th>Assigned To</th>
+                <th>Assigned Member ID</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -324,7 +348,12 @@ export default function TaskBoard({ project }) {
                       {t.priority.toUpperCase()}
                     </span>
                   </td>
-                  <td className="text-light">{t.assigned_to}</td>
+                  <td className="text-light">
+                    <span className="fw-semibold">{t.assigned_to}</span>
+                    {t.assigned_member_id && (
+                      <code className="text-cyan ms-2 small">{t.assigned_member_id}</code>
+                    )}
+                  </td>
                   <td>
                     <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteTask(t.id)}>
                       <i className="bi bi-trash"></i>
@@ -349,7 +378,9 @@ export default function TaskBoard({ project }) {
                 <small className="text-secondary d-block mb-2">{t.description || 'Sprint task item'}</small>
                 <div className="d-flex gap-2 align-items-center">
                   <span className="badge bg-dark border border-secondary border-opacity-40 text-secondary" style={{ fontSize: '0.72rem' }}>Status: {t.status}</span>
-                  <span className="text-cyan small fw-semibold" style={{ fontSize: '0.76rem' }}>Assignee: {t.assigned_to}</span>
+                  <span className="text-cyan small fw-semibold" style={{ fontSize: '0.76rem' }}>
+                    Assignee: {t.assigned_to} ({t.assigned_member_id || 'ID Pending'})
+                  </span>
                 </div>
               </div>
             ))}

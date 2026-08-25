@@ -8,10 +8,17 @@ class UserBase(BaseModel):
     full_name: str
     avatar_url: Optional[str] = None
     availability_status: str = "online"
-    role: str = "Developer"
+    role: str = "Lead Software Architect"
+    permissions: Optional[List[str]] = ["all"]
 
 class UserCreate(UserBase):
-    password: str
+    password: Optional[str] = None
+
+class UserSwitchRequest(BaseModel):
+    member_id: Optional[str] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    role: Optional[str] = None
 
 class UserResponse(UserBase):
     id: str
@@ -25,11 +32,17 @@ class UserResponse(UserBase):
 class MemberBase(BaseModel):
     user_name: str
     user_email: str
-    role: str = "editor"
-    specialty: Optional[str] = "Full-Stack Developer"
+    role: str = "Frontend Developer"
+    specialty: Optional[str] = "Frontend Development"
+    permissions: Optional[List[str]] = ["chat", "code", "tasks", "read_artifacts"]
 
 class MemberCreate(MemberBase):
     pass
+
+class MemberUpdate(BaseModel):
+    role: Optional[str] = None
+    specialty: Optional[str] = None
+    permissions: Optional[List[str]] = None
 
 class MemberResponse(MemberBase):
     id: str
@@ -123,6 +136,13 @@ class ConversationBase(BaseModel):
     category: str = "General"
     class_id: Optional[str] = None
     assigned_agent: Optional[str] = None
+    status: str = "active"
+    member_id: Optional[str] = None
+    member_name: Optional[str] = None
+    member_role: Optional[str] = None
+    related_tasks: Optional[List[str]] = []
+    related_files: Optional[List[str]] = []
+    related_artifacts: Optional[List[str]] = []
 
 class ConversationCreate(ConversationBase):
     project_id: str
@@ -142,12 +162,16 @@ class MessageCreate(BaseModel):
     conversation_id: str
     content: str
     sender_name: Optional[str] = "Developer"
+    sender_member_id: Optional[str] = None
+    sender_role: Optional[str] = None
 
 class MessageResponse(BaseModel):
     id: str
     conversation_id: str
     sender_type: str
     sender_name: str
+    sender_member_id: Optional[str] = None
+    sender_role: Optional[str] = None
     content: str
     agent_name: Optional[str] = None
     agent_reasoning: Optional[str] = None
@@ -168,6 +192,7 @@ class PersonalAssistantMessageResponse(BaseModel):
     user_id: str
     project_id: Optional[str] = None
     sender_type: str
+    sender_member_id: Optional[str] = None
     content: str
     citations: Optional[Any] = None
     created_at: datetime
@@ -178,7 +203,7 @@ class PersonalAssistantMessageResponse(BaseModel):
 class TransferDraftRequest(BaseModel):
     project_id: str
     content: str
-    target_type: str # 'conversation' or 'artifact'
+    target_type: str
     conversation_id: Optional[str] = None
     title: Optional[str] = "Transferred Assistant Draft"
 
@@ -193,6 +218,7 @@ class MemoryCreate(BaseModel):
 class MemoryResponse(MemoryCreate):
     id: str
     project_id: str
+    created_by_member_id: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -204,28 +230,33 @@ class FileResponse(BaseModel):
     project_id: str
     class_id: Optional[str] = None
     filename: str
+    file_path: Optional[str] = None
     file_type: str
     file_size: int
     chunk_count: int
     summary: Optional[str] = None
+    uploaded_by_member_id: Optional[str] = None
     uploaded_at: datetime
 
     class Config:
         from_attributes = True
 
 # Task Schemas
-class TaskCreate(BaseModel):
+class TaskBase(BaseModel):
     title: str
     description: Optional[str] = None
     status: str = "todo"
     priority: str = "medium"
-    assigned_to: Optional[str] = "Unassigned"
-    class_id: Optional[str] = None
+    assigned_to: str = "Unassigned"
+    assigned_member_id: Optional[str] = None
     deadline: Optional[str] = None
-    estimated_hours: Optional[int] = 4
+    estimated_hours: int = 4
     dependencies: Optional[List[str]] = []
     checklists: Optional[List[Dict[str, Any]]] = []
     labels: Optional[List[str]] = ["Feature"]
+
+class TaskCreate(TaskBase):
+    class_id: Optional[str] = None
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
@@ -233,6 +264,7 @@ class TaskUpdate(BaseModel):
     status: Optional[str] = None
     priority: Optional[str] = None
     assigned_to: Optional[str] = None
+    assigned_member_id: Optional[str] = None
     class_id: Optional[str] = None
     deadline: Optional[str] = None
     estimated_hours: Optional[int] = None
@@ -240,9 +272,10 @@ class TaskUpdate(BaseModel):
     checklists: Optional[List[Dict[str, Any]]] = None
     labels: Optional[List[str]] = None
 
-class TaskResponse(TaskCreate):
+class TaskResponse(TaskBase):
     id: str
     project_id: str
+    class_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -250,15 +283,31 @@ class TaskResponse(TaskCreate):
         from_attributes = True
 
 # Artifact Schemas
-class ArtifactCreate(BaseModel):
+class ArtifactBase(BaseModel):
     title: str
     artifact_type: str = "code"
     content: str
     language: str = "javascript"
-    class_id: Optional[str] = None
     status: str = "approved"
     change_summary: Optional[str] = "Initial artifact creation"
+
+class ArtifactCreate(ArtifactBase):
+    class_id: Optional[str] = None
     created_by: Optional[str] = "AI Assistant"
+    created_by_member_id: Optional[str] = None
+
+class ArtifactResponse(ArtifactBase):
+    id: str
+    project_id: str
+    class_id: Optional[str] = None
+    version: int
+    created_by: str
+    created_by_member_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
 
 class ArtifactVersionResponse(BaseModel):
     id: str
@@ -267,38 +316,60 @@ class ArtifactVersionResponse(BaseModel):
     content: str
     change_summary: Optional[str] = None
     created_by: str
+    created_by_member_id: Optional[str] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
 
-class ArtifactResponse(ArtifactCreate):
-    id: str
-    project_id: str
-    version: int
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-# Activity & Usage Log Schemas
-class ActivityLogResponse(BaseModel):
-    id: str
+# Complete Activity History & Audit Schemas (2.1 & 2.2)
+class ActivityLogBase(BaseModel):
     project_id: str
     class_id: Optional[str] = None
-    user_name: str
-    action_type: str
+    member_id: str = "USR-LEAD-7K2M9A"
+    member_name: str = "Alex Tech Lead"
+    member_role: str = "Lead Software Architect"
+    conversation_id: Optional[str] = None
+    task_id: Optional[str] = None
+    artifact_id: Optional[str] = None
+    file_path: Optional[str] = None
+    action_type: str = "code_change"
+    action_title: Optional[str] = None
     description: str
+    prev_version: Optional[str] = None
+    new_version: Optional[str] = None
+    metadata_json: Optional[Any] = None
+
+class ActivityLogCreate(ActivityLogBase):
+    pass
+
+class ActivityLogResponse(ActivityLogBase):
+    id: str
+    user_name: Optional[str] = None
+    user_member_id: Optional[str] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+class RoleActivitySummary(BaseModel):
+    role_name: str
+    role_category: str
+    prefix: str
+    member_count: int
+    action_count: int
+    primary_member_name: Optional[str] = None
+    primary_member_id: Optional[str] = None
+    recent_actions: List[ActivityLogResponse] = []
+    related_conversation_id: Optional[str] = None
+    related_artifact_count: int = 0
+    related_task_count: int = 0
 
 class ModelUsageLogResponse(BaseModel):
     id: str
     project_id: Optional[str] = None
     user_name: str
+    user_member_id: Optional[str] = None
     model_name: str
     provider: str
     prompt_tokens: int
@@ -310,12 +381,10 @@ class ModelUsageLogResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Search Result Schema
 class SearchResultItem(BaseModel):
+    entity_type: str
     id: str
-    entity_type: str # 'project', 'class', 'conversation', 'message', 'file', 'memory', 'task', 'artifact'
     title: str
-    subtitle: str
+    subtitle: Optional[str] = None
     category: Optional[str] = None
-    project_id: Optional[str] = None
-    class_id: Optional[str] = None
+    score: float = 1.0

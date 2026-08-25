@@ -12,10 +12,12 @@ export default function Sidebar({
   activeConversation,
   onSelectConversation,
   onNewConversation,
-  onOpenNewProject
+  onOpenNewProject,
+  currentUser
 }) {
   const navItems = [
     { id: 'overview', label: 'Overview Dashboard', icon: 'bi-grid-1x2-fill', color: 'text-cyan' },
+    { id: 'activity', label: 'History & Audit (2.3/2.5)', icon: 'bi-clock-history', color: 'text-purple' },
     { id: 'classes', label: 'Classes & Workstreams', icon: 'bi-diagram-3-fill', color: 'text-purple' },
     { id: 'chats', label: 'Team Conversations', icon: 'bi-chat-left-dots-fill', color: 'text-cyan' },
     { id: 'tasks', label: 'Tasks & Kanban', icon: 'bi-kanban-fill', color: 'text-emerald' },
@@ -92,39 +94,54 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Conversations Sub-list (when on chats tab) */}
+      {/* Conversations Sub-list (when on chats tab) (Requirement 2.4) */}
       {activeTab === 'chats' && (
         <div className="mb-3 flex-grow-1 overflow-auto">
           <div className="d-flex justify-content-between align-items-center mb-2 px-1">
             <label className="text-secondary fw-bold mb-0" style={{ fontSize: '0.7rem', letterSpacing: '1px' }}>
-              CONVERSATIONS
+              TEAM CONVERSATIONS (2.4)
             </label>
             <button className="btn btn-xs text-cyan text-decoration-none fw-bold p-0" style={{ fontSize: '0.75rem' }} onClick={onNewConversation}>
               + New Chat
             </button>
           </div>
 
-          <div className="d-flex flex-column gap-1">
-            {conversations.map((c) => (
-              <button
-                key={c.id}
-                className={`btn btn-sm text-start py-2 px-3 rounded-3 border d-flex align-items-center justify-content-between transition-all ${
-                  activeConversation?.id === c.id
-                    ? 'btn-outline-cyan bg-cyan bg-opacity-10 text-white fw-bold'
-                    : 'bg-dark bg-opacity-50 border-secondary border-opacity-30 text-secondary'
-                }`}
-                style={{ fontSize: '0.8rem' }}
-                onClick={() => onSelectConversation(c)}
-              >
-                <div className="text-truncate me-2">
-                  <i className="bi bi-hash me-1 text-cyan opacity-75"></i>
-                  {c.title}
-                </div>
-                <span className="badge bg-secondary bg-opacity-50 text-light" style={{ fontSize: '0.65rem' }}>
-                  {c.category}
-                </span>
-              </button>
-            ))}
+          <div className="d-flex flex-column gap-1.5">
+            {conversations.map((c) => {
+              const isSelf = c.member_id === currentUser?.public_member_id;
+              const ownerName = isSelf ? 'You' : (c.member_name || 'Member');
+              const memberId = c.member_id || currentUser?.public_member_id || 'USR-FE-7A29X4';
+              const memberRole = c.member_role || currentUser?.role || 'Frontend Developer';
+
+              return (
+                <button
+                  key={c.id}
+                  className={`btn btn-sm text-start p-2.5 rounded-3 border transition-all ${
+                    activeConversation?.id === c.id
+                      ? 'btn-outline-cyan bg-cyan bg-opacity-10 text-white shadow-sm'
+                      : 'bg-dark bg-opacity-60 border-secondary border-opacity-25 text-secondary hover-bg-dark'
+                  }`}
+                  style={{ fontSize: '0.8rem' }}
+                  onClick={() => onSelectConversation(c)}
+                >
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <span className="fw-bold text-white text-truncate me-1" style={{ fontSize: '0.82rem' }}>
+                      💬 {c.title}
+                    </span>
+                    <span className="badge bg-emerald bg-opacity-20 text-emerald border border-emerald border-opacity-30 py-0" style={{ fontSize: '0.62rem' }}>
+                      {c.status || 'Active'}
+                    </span>
+                  </div>
+
+                  <div className="d-flex align-items-center justify-content-between text-secondary" style={{ fontSize: '0.7rem' }}>
+                    <span className="text-truncate">
+                      <strong className={isSelf ? 'text-cyan' : 'text-light'}>{ownerName}</strong> ({memberRole})
+                    </span>
+                    <code className="text-cyan ms-1 fw-bold" style={{ fontSize: '0.64rem' }}>{memberId}</code>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

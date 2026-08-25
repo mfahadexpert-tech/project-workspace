@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getProjects, getConversations, createConversation, getCurrentUser } from '../lib/api';
+import { getProjects, getConversations, createConversation, getCurrentUser, switchActiveUser } from '../lib/api';
 
 import Navbar from '../components/layout/Navbar';
 import Sidebar from '../components/layout/Sidebar';
@@ -18,9 +18,16 @@ import MemoryManager from '../components/memory/MemoryManager';
 import MemberModal from '../components/members/MemberModal';
 import NewProjectModal from '../components/projects/NewProjectModal';
 import GlobalSearchModal from '../components/search/GlobalSearchModal';
+import ActivityAuditTab from '../components/activity/ActivityAuditTab';
 
 export default function WorkspaceHome() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState({
+    full_name: 'Muhammad Fahad',
+    email: 'fahad@workspace.dev',
+    role: 'Frontend Developer',
+    public_member_id: 'USR-FE-7A29X4',
+    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+  });
   const [projects, setProjects] = useState([]);
   const [activeProject, setActiveProject] = useState(null);
   const [conversations, setConversations] = useState([]);
@@ -62,9 +69,25 @@ export default function WorkspaceHome() {
   const loadUser = async () => {
     try {
       const res = await getCurrentUser();
-      setCurrentUser(res.data);
+      if (res.data) {
+        setCurrentUser(res.data);
+      }
     } catch (err) {
       console.error('Error loading current user:', err);
+    }
+  };
+
+  const handleSwitchActiveUser = async (userData) => {
+    try {
+      const res = await switchActiveUser(userData);
+      setCurrentUser(res.data);
+      if (activeProject?.id) {
+        await loadProjects(activeProject.id);
+      }
+    } catch (err) {
+      console.error('Error switching active user:', err);
+      // Fallback local update
+      setCurrentUser((prev) => ({ ...prev, ...userData, public_member_id: userData.member_id || prev.public_member_id }));
     }
   };
 
@@ -141,13 +164,14 @@ export default function WorkspaceHome() {
 
   return (
     <div className="app-container">
-      {/* Navbar */}
+      {/* Navbar with You / Role / Member ID and Identity Switcher */}
       <Navbar
         activeProject={activeProject}
         currentUser={currentUser}
         onOpenMembersModal={() => setShowMemberModal(true)}
         onOpenNewProject={() => setShowNewProjectModal(true)}
         onOpenSearch={() => setShowSearchModal(true)}
+        onSwitchActiveUser={handleSwitchActiveUser}
       />
 
       <div className="d-flex flex-grow-1 position-relative overflow-hidden">
@@ -164,6 +188,7 @@ export default function WorkspaceHome() {
             onSelectConversation={(c) => setActiveConversation(c)}
             onNewConversation={handleNewConversation}
             onOpenNewProject={() => setShowNewProjectModal(true)}
+            currentUser={currentUser}
           />
         </div>
 
@@ -174,6 +199,7 @@ export default function WorkspaceHome() {
               {activeTab === 'overview' && (
                 <ProjectOverviewTab
                   project={activeProject}
+                  currentUser={currentUser}
                   classesCount={activeProject.classes?.length || 12}
                   tasksCount={3}
                   artifactsCount={1}
@@ -183,9 +209,18 @@ export default function WorkspaceHome() {
                 />
               )}
 
+              {activeTab === 'activity' && (
+                <ActivityAuditTab
+                  project={activeProject}
+                  currentUser={currentUser}
+                  onNavigateTab={(tab) => setActiveTab(tab)}
+                />
+              )}
+
               {activeTab === 'classes' && (
                 <ClassesTab
                   project={activeProject}
+                  currentUser={currentUser}
                   onSelectClassFilter={() => setActiveTab('chats')}
                 />
               )}
@@ -195,6 +230,7 @@ export default function WorkspaceHome() {
                   <ChatWindow
                     conversation={activeConversation}
                     project={activeProject}
+                    currentUser={currentUser}
                     initialPrompt={initialPrompt}
                     onClearInitialPrompt={() => setInitialPrompt('')}
                   />
@@ -210,20 +246,21 @@ export default function WorkspaceHome() {
               )}
 
               {activeTab === 'tasks' && (
-                <TaskBoard project={activeProject} />
+                <TaskBoard project={activeProject} currentUser={currentUser} />
               )}
 
               {activeTab === 'artifacts' && (
-                <ArtifactViewer project={activeProject} />
+                <ArtifactViewer project={activeProject} currentUser={currentUser} />
               )}
 
               {activeTab === 'knowledge' && (
-                <KnowledgeBase project={activeProject} />
+                <KnowledgeBase project={activeProject} currentUser={currentUser} />
               )}
 
               {activeTab === 'memory' && (
                 <MemoryManager
                   project={activeProject}
+                  currentUser={currentUser}
                   onProjectUpdated={() => loadProjects(activeProject.id)}
                 />
               )}
@@ -265,12 +302,14 @@ export default function WorkspaceHome() {
         }}
       />
 
-      {/* Modals */}
+      {/* Member Management Modal */}
       <MemberModal
         project={activeProject}
+        currentUser={currentUser}
         show={showMemberModal}
         onClose={() => setShowMemberModal(false)}
         onMemberAdded={() => loadProjects(activeProject?.id)}
+        onSwitchActiveUser={handleSwitchActiveUser}
       />
 
       <NewProjectModal

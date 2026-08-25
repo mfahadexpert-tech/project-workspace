@@ -40,6 +40,7 @@ async def create_task(project_id: str, payload: TaskCreate, db: AsyncSession = D
         status=payload.status or "todo",
         priority=payload.priority or "medium",
         assigned_to=payload.assigned_to or "Unassigned",
+        assigned_member_id=payload.assigned_member_id,
         deadline=payload.deadline,
         estimated_hours=payload.estimated_hours or 4,
         dependencies=payload.dependencies or [],
@@ -49,12 +50,22 @@ async def create_task(project_id: str, payload: TaskCreate, db: AsyncSession = D
     db.add(task)
     await db.flush()
 
+    m_id = payload.assigned_member_id or "USR-LEAD-7K2M9A"
+    m_name = payload.assigned_to or "Alex Tech Lead"
+    m_role = "Project Manager" if "PM" in m_id else "Developer"
+
     log = ActivityLog(
         project_id=project_id,
         class_id=payload.class_id,
-        user_name="Developer",
+        member_id=m_id,
+        member_name=m_name,
+        member_role=m_role,
+        task_id=task.id,
         action_type="task_created",
-        description=f"Created task '{task.title}' assigned to {task.assigned_to}"
+        action_title=f"Created task: {task.title}",
+        description=f"Created task '{task.title}' assigned to {task.assigned_to} [{m_id}]",
+        user_name=m_name,
+        user_member_id=m_id
     )
     db.add(log)
 
@@ -80,6 +91,8 @@ async def update_task(task_id: str, payload: TaskUpdate, db: AsyncSession = Depe
         task.priority = payload.priority
     if payload.assigned_to is not None:
         task.assigned_to = payload.assigned_to
+    if payload.assigned_member_id is not None:
+        task.assigned_member_id = payload.assigned_member_id
     if payload.class_id is not None:
         task.class_id = payload.class_id
     if payload.deadline is not None:
@@ -93,11 +106,27 @@ async def update_task(task_id: str, payload: TaskUpdate, db: AsyncSession = Depe
     if payload.labels is not None:
         task.labels = payload.labels
 
+    m_id = task.assigned_member_id or "USR-LEAD-7K2M9A"
+    m_name = task.assigned_to or "Alex Tech Lead"
+    m_role = "Developer"
+
     if old_status != task.status:
         log = ActivityLog(
             project_id=task.project_id,
             class_id=task.class_id,
-            user_name="Developer",
+            member_id=m_id,
+            member_name=m_name,
+            member_role=m_role,
+            task_id=task.id,
+            action_type="task_status_changed",
+            action_title=f"Task moved to {task.status.upper()}",
+            description=f"Updated task '{task.title}' status from '{old_status}' to '{task.status}'",
+            prev_version=old_status,
+            new_version=task.status,
+            user_name=m_name,
+            user_member_id=m_id
+        )
+        db.add(log)
             action_type="task_moved",
             description=f"Moved task '{task.title}' from {old_status.upper()} to {task.status.upper()}"
         )

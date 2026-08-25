@@ -6,7 +6,7 @@ from sqlalchemy.future import select
 from typing import List, Optional
 
 from app.database import get_db
-from app.models import Project, ProjectClass, Conversation, Message, ProjectMemory, ProjectFile, Task, Artifact, ArtifactVersion, ActivityLog
+from app.models import Project, ProjectMember, ProjectClass, Conversation, Message, ProjectMemory, ProjectFile, Task, Artifact, ArtifactVersion, ActivityLog, User
 from app.schemas import ConversationCreate, ConversationResponse, MessageCreate, MessageResponse, TaskResponse
 from app.services.context_builder import ContextBuilder
 from app.services.rag_service import RAGService
@@ -61,16 +61,34 @@ async def post_message(conversation_id: str, payload: MessageCreate, db: AsyncSe
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    # Fetch current user identity if not provided in payload
+    sender_name = payload.sender_name or "Alex Tech Lead"
+    sender_member_id = payload.sender_member_id
+    sender_role = payload.sender_role
+
+    if not sender_member_id or not sender_role:
+        u_res = await db.execute(select(User))
+        curr_user = u_res.scalars().first()
+        if curr_user:
+            sender_member_id = sender_member_id or curr_user.public_member_id
+            sender_role = sender_role or curr_user.role
+            sender_name = sender_name or curr_user.full_name
+        else:
+            sender_member_id = sender_member_id or "USR-LEAD-7K2M9A"
+            sender_role = sender_role or "Lead Software Architect"
+
     # Fetch class if assigned
     project_class = None
     if conv.class_id:
         project_class = await db.get(ProjectClass, conv.class_id)
 
-    # 2. Save User Message
+    # 2. Save User Message with Bound Member Identity
     user_msg = Message(
         conversation_id=conversation_id,
         sender_type="user",
-        sender_name=payload.sender_name or "Developer",
+        sender_name=sender_name,
+        sender_member_id=sender_member_id,
+        sender_role=sender_role,
         content=payload.content
     )
     db.add(user_msg)
@@ -91,9 +109,17 @@ async def post_message(conversation_id: str, payload: MessageCreate, db: AsyncSe
     )
     recent_messages = hist_res.scalars().all()
 
-    # 4. Build Context with Class Instructions
+    # 4. Build Role-Aware Context with Member Identity Directives
     system_prompt, user_prompt = ContextBuilder.build_context(
-        project, memories, rag_chunks, recent_messages, payload.content, project_class=project_class
+        project=project,
+        memories=memories,
+        rag_chunks=rag_chunks,
+        recent_messages=recent_messages,
+        current_prompt=payload.content,
+        project_class=project_class,
+        active_user_name=sender_name,
+        active_user_role=sender_role,
+        active_member_id=sender_member_id
     )
 
     # 5. Process Request via Multi-Agent Orchestration (Supervisor)
@@ -105,8 +131,7 @@ async def post_message(conversation_id: str, payload: MessageCreate, db: AsyncSe
     if not ai_response or not str(ai_response).strip():
         ai_response = (
             "I received your request but could not generate a response. "
-            "Please check that at least one API key (OpenAI, Gemini, or Anthropic) "
-            "is set in `server/.env`, then restart the server."
+            "Please check that at least one API key is configured in `server/.env`."
         )
 
     # 6. Save AI Response Message
@@ -123,18 +148,19 @@ async def post_message(conversation_id: str, payload: MessageCreate, db: AsyncSe
     await db.commit()
     await db.refresh(ai_msg)
 
-    # 7. Check if response contains code or Mermaid diagram -> Create Artifact automatically
+    # 7. Check if response contains code or Mermaid diagram -> Create Artifact automatically with Member ID tracking
     if "```python" in ai_response or "```javascript" in ai_response or "```mermaid" in ai_response:
         art_type = "diagram" if "```mermaid" in ai_response else "code"
         lang = "mermaid" if "```mermaid" in ai_response else ("python" if "```python" in ai_response else "javascript")
         auto_art = Artifact(
             project_id=project.id,
             class_id=conv.class_id,
-            title=f"AI Generated {art_type.capitalize()} Snippet ({conv.title})",
+            title=f"AI Generated {art_type.capitalize()} ({conv.title})",
             artifact_type=art_type,
             content=ai_response,
             language=lang,
-            created_by=agent_name
+            created_by=f"{agent_name} (for {sender_name})",
+            created_by_member_id=sender_member_id
         )
         db.add(auto_art)
         await db.flush()
@@ -143,15 +169,13 @@ async def post_message(conversation_id: str, payload: MessageCreate, db: AsyncSe
             artifact_id=auto_art.id,
             version=1,
             content=ai_response,
-            change_summary="Auto-created from chat conversation",
-            created_by=agent_name
+            change_summary=f"Created for request by {sender_name} [{sender_member_id}]",
+            created_by=agent_name,
+            created_by_member_id=sender_member_id
         )
         db.add(ver)
 
-    # 8. Auto-create artifact if code/diagram in response
-    # (already handled above before the commit)
-
-    # 9. Extract Persistent Memory (best-effort, don't fail the request)
+    # 8. Extract Persistent Memory
     try:
         await MemoryService.extract_and_save_memory(db, project.id, payload.content, class_id=conv.class_id)
         await MemoryService.extract_and_save_memory(db, project.id, ai_response, class_id=conv.class_id)
@@ -179,7 +203,8 @@ async def convert_message_to_task(message_id: str, db: AsyncSession = Depends(ge
         description=f"Generated from conversation '{conv.title}' message:\n\n{msg.content}",
         status="todo",
         priority="medium",
-        assigned_to="Unassigned"
+        assigned_to=msg.sender_name or "Unassigned",
+        assigned_member_id=msg.sender_member_id
     )
     db.add(task)
 
@@ -187,6 +212,7 @@ async def convert_message_to_task(message_id: str, db: AsyncSession = Depends(ge
         project_id=conv.project_id,
         class_id=conv.class_id,
         user_name=msg.sender_name,
+        user_member_id=msg.sender_member_id,
         action_type="task_created",
         description=f"Converted chat message to task: '{task.title}'"
     )

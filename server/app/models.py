@@ -6,12 +6,60 @@ from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Integer, JSON
 from sqlalchemy.orm import relationship
 from app.database import Base
 
+ROLE_PREFIX_MAP = {
+    "Frontend Development": "USR-FE",
+    "Frontend Developer": "USR-FE",
+    "frontend_dev": "USR-FE",
+    "Backend Development": "USR-BE",
+    "Backend Developer": "USR-BE",
+    "backend_dev": "USR-BE",
+    "Database": "USR-DB",
+    "Database Developer": "USR-DB",
+    "database_dev": "USR-DB",
+    "Documentation": "USR-DOC",
+    "Documentation Specialist": "USR-DOC",
+    "Technical Documentation": "USR-DOC",
+    "documentation": "USR-DOC",
+    "UI/UX Design": "USR-UI",
+    "UI/UX Designer": "USR-UI",
+    "ui_ux": "USR-UI",
+    "Architecture": "USR-ARCH",
+    "System Architect": "USR-ARCH",
+    "architecture": "USR-ARCH",
+    "Testing & QA": "USR-QA",
+    "QA & Test Engineer": "USR-QA",
+    "qa_testing": "USR-QA",
+    "DevOps & Deployment": "USR-DEVOPS",
+    "DevOps Engineer": "USR-DEVOPS",
+    "devops": "USR-DEVOPS",
+    "Security": "USR-SEC",
+    "Security Specialist": "USR-SEC",
+    "security": "USR-SEC",
+    "Research": "USR-RES",
+    "Research Analyst": "USR-RES",
+    "research": "USR-RES",
+    "Project Management": "USR-PM",
+    "Project Manager": "USR-PM",
+    "project_manager": "USR-PM",
+    "owner": "USR-LEAD",
+    "Lead Software Architect": "USR-LEAD"
+}
+
 def generate_uuid():
     return str(uuid.uuid4())
 
-def generate_public_member_id():
+def generate_public_member_id(role=None):
+    prefix = "USR-DEV"
+    if role:
+        if role in ROLE_PREFIX_MAP:
+            prefix = ROLE_PREFIX_MAP[role]
+        else:
+            for k, v in ROLE_PREFIX_MAP.items():
+                if k.lower() in role.lower() or role.lower() in k.lower():
+                    prefix = v
+                    break
     chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    return f"USR-{chars}"
+    return f"{prefix}-{chars}"
 
 def generate_public_project_id():
     chars = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -21,13 +69,14 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String, primary_key=True, default=generate_uuid)
-    public_member_id = Column(String(20), unique=True, default=generate_public_member_id)
+    public_member_id = Column(String(30), unique=True, default=lambda: generate_public_member_id("owner"))
     email = Column(String(120), unique=True, nullable=False)
     hashed_password = Column(String(200), nullable=True)
     full_name = Column(String(100), nullable=False)
     avatar_url = Column(String(300), nullable=True)
     availability_status = Column(String(30), default="online") # online, busy, offline
-    role = Column(String(30), default="Developer")
+    role = Column(String(50), default="Lead Software Architect")
+    permissions = Column(JSON, nullable=True, default=["all"])
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class Project(Base):
@@ -65,11 +114,12 @@ class ProjectMember(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
     user_id = Column(String, nullable=True)
-    public_member_id = Column(String(20), default=generate_public_member_id)
+    public_member_id = Column(String(30), default=lambda: generate_public_member_id("Frontend Developer"))
     user_name = Column(String(100), nullable=False)
     user_email = Column(String(100), nullable=False)
-    role = Column(String(30), default="editor") # owner, admin, pm, editor, developer, viewer
-    specialty = Column(String(50), default="Full-Stack Developer")
+    role = Column(String(50), default="Frontend Developer")
+    specialty = Column(String(100), default="Frontend Development")
+    permissions = Column(JSON, nullable=True, default=["chat", "code", "tasks", "read_artifacts"])
     joined_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     project = relationship("Project", back_populates="members")
@@ -103,8 +153,15 @@ class Conversation(Base):
     class_id = Column(String, ForeignKey("project_classes.id"), nullable=True)
     assigned_agent = Column(String(100), nullable=True)
     title = Column(String(150), nullable=False, default="New Conversation")
-    category = Column(String(50), default="General") # Architecture, Coding, Research, Database, General
+    category = Column(String(50), default="General")
     summary = Column(Text, nullable=True)
+    status = Column(String(20), default="active") # active, archived
+    member_id = Column(String(30), nullable=True)
+    member_name = Column(String(100), nullable=True)
+    member_role = Column(String(50), nullable=True)
+    related_tasks = Column(JSON, nullable=True, default=[])
+    related_files = Column(JSON, nullable=True, default=[])
+    related_artifacts = Column(JSON, nullable=True, default=[])
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
@@ -118,9 +175,11 @@ class Message(Base):
     conversation_id = Column(String, ForeignKey("conversations.id"), nullable=False)
     sender_type = Column(String(30), nullable=False) # user, supervisor, slave_coding, slave_arch, slave_doc, slave_review
     sender_name = Column(String(100), nullable=False)
+    sender_member_id = Column(String(30), nullable=True)
+    sender_role = Column(String(50), nullable=True)
     content = Column(Text, nullable=False)
     agent_name = Column(String(100), nullable=True)
-    agent_reasoning = Column(Text, nullable=True) # Why Supervisor delegated or direct response rationale
+    agent_reasoning = Column(Text, nullable=True)
     tool_calls = Column(JSON, nullable=True)
     citations = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -134,6 +193,7 @@ class PersonalAssistantMessage(Base):
     user_id = Column(String, nullable=False, default="default_user")
     project_id = Column(String, nullable=True)
     sender_type = Column(String(20), nullable=False) # user, assistant
+    sender_member_id = Column(String(30), nullable=True)
     content = Column(Text, nullable=False)
     citations = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -148,6 +208,7 @@ class ProjectMemory(Base):
     memory_value = Column(Text, nullable=False)
     category = Column(String(30), default="fact") # fact, decision, constraint, stack, goal
     importance = Column(Integer, default=3)
+    created_by_member_id = Column(String(30), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     project = relationship("Project", back_populates="memories")
@@ -164,6 +225,7 @@ class ProjectFile(Base):
     file_size = Column(Integer, default=0)
     chunk_count = Column(Integer, default=0)
     summary = Column(Text, nullable=True)
+    uploaded_by_member_id = Column(String(30), nullable=True)
     uploaded_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     project = relationship("Project", back_populates="files")
@@ -192,6 +254,7 @@ class Task(Base):
     status = Column(String(20), default="todo") # todo, in_progress, completed, blocked
     priority = Column(String(20), default="medium") # low, medium, high
     assigned_to = Column(String(100), default="Unassigned")
+    assigned_member_id = Column(String(30), nullable=True)
     deadline = Column(String(50), nullable=True)
     estimated_hours = Column(Integer, default=4)
     dependencies = Column(JSON, nullable=True, default=[])
@@ -211,11 +274,12 @@ class Artifact(Base):
     title = Column(String(150), nullable=False)
     artifact_type = Column(String(30), default="code") # code, document, diagram, spec
     content = Column(Text, nullable=False)
-    language = Column(String(30), default="javascript") # python, javascript, markdown, mermaid
+    language = Column(String(30), default="javascript")
     version = Column(Integer, default=1)
     status = Column(String(20), default="approved") # draft, in_review, approved, published
     change_summary = Column(Text, default="Initial artifact creation")
     created_by = Column(String(100), default="AI Assistant")
+    created_by_member_id = Column(String(30), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
@@ -231,6 +295,7 @@ class ArtifactVersion(Base):
     content = Column(Text, nullable=False)
     change_summary = Column(Text, nullable=True)
     created_by = Column(String(100), default="AI Assistant")
+    created_by_member_id = Column(String(30), nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     artifact = relationship("Artifact", back_populates="versions")
@@ -241,9 +306,29 @@ class ActivityLog(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
     class_id = Column(String, ForeignKey("project_classes.id"), nullable=True)
-    user_name = Column(String(100), default="System")
-    action_type = Column(String(50), nullable=False) # class_created, task_moved, memory_extracted, artifact_published
+    
+    # Audit Attribution (2.1 & 2.2)
+    member_id = Column(String(30), nullable=False, default="USR-LEAD-7K2M9A")
+    member_name = Column(String(100), nullable=False, default="Alex Tech Lead")
+    member_role = Column(String(50), nullable=False, default="Lead Software Architect")
+    
+    # Target Entities
+    conversation_id = Column(String(100), nullable=True)
+    task_id = Column(String(100), nullable=True)
+    artifact_id = Column(String(100), nullable=True)
+    file_path = Column(String(250), nullable=True)
+    
+    # Action & Version Details
+    action_type = Column(String(50), nullable=False) # code_change, doc_update, task_created, task_status_changed, artifact_created, db_change, security_audit, role_reassigned, member_invited
+    action_title = Column(String(200), nullable=True)
     description = Column(Text, nullable=False)
+    prev_version = Column(String(50), nullable=True)
+    new_version = Column(String(50), nullable=True)
+    
+    # Legacy fields compatibility
+    user_name = Column(String(100), nullable=True)
+    user_member_id = Column(String(30), nullable=True)
+    
     metadata_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
@@ -253,6 +338,7 @@ class ModelUsageLog(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     project_id = Column(String, ForeignKey("projects.id"), nullable=True)
     user_name = Column(String(100), default="Alex Tech Lead")
+    user_member_id = Column(String(30), nullable=True)
     model_name = Column(String(50), default="gemini-2.0-flash")
     provider = Column(String(30), default="Google Gemini")
     prompt_tokens = Column(Integer, default=0)
@@ -267,9 +353,10 @@ class ApprovalRequest(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
     requested_by = Column(String(100), default="Supervisor Orchestrator Agent")
-    action_type = Column(String(50), nullable=False) # publish_artifact, delete_data, modify_role, run_high_risk_tool
+    requested_by_member_id = Column(String(30), nullable=True)
+    action_type = Column(String(50), nullable=False)
     target_entity = Column(String(100), nullable=False)
     impact_summary = Column(Text, nullable=False)
-    status = Column(String(20), default="pending") # pending, approved, rejected
+    status = Column(String(20), default="pending")
     metadata_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
