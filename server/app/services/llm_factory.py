@@ -1,14 +1,24 @@
 import os
 import json
-import requests
+import httpx
 from app.config import settings
+
+# Shared async HTTP client with connection pooling for performance
+_http_client = None
+
+def _get_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None:
+        _http_client = httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0))
+    return _http_client
 
 
 class LLMFactory:
     """
     Provider-independent LLM gateway.
     Automatically picks the right provider and model per agent role.
-    Priority: OpenAI → Gemini → Anthropic → Smart Fallback (offline demo).
+    Priority: Gemini → OpenAI → Anthropic → Smart Fallback (offline demo).
+    Uses async httpx to avoid blocking the event loop.
     """
 
     # ── Agent Role → Model Mapping ────────────────────────────────────────────
@@ -32,8 +42,10 @@ class LLMFactory:
         """
         Route to the best available provider automatically.
         Pass agent_role to get the correct model for that specialist.
+        All HTTP calls are async — no event-loop blocking.
         """
         role_models = LLMFactory.AGENT_MODELS.get(agent_role, LLMFactory.AGENT_MODELS["supervisor"])
+        client = _get_client()
 
         # ── 1. Try Google Gemini (Active & Verified) ─────────────────────────
         if settings.GEMINI_API_KEY:
@@ -54,7 +66,7 @@ class LLMFactory:
                         }],
                         "generationConfig": {"temperature": temperature}
                     }
-                    res = requests.post(url, json=payload, timeout=60)
+                    res = await client.post(url, json=payload)
                     if res.status_code == 200:
                         data = res.json()
                         candidates = data.get("candidates", [])
@@ -87,9 +99,9 @@ class LLMFactory:
                     ],
                     "temperature": temperature
                 }
-                res = requests.post(
+                res = await client.post(
                     "https://api.openai.com/v1/chat/completions",
-                    json=payload, headers=headers, timeout=60
+                    json=payload, headers=headers
                 )
                 if res.status_code == 200:
                     data = res.json()
@@ -115,9 +127,9 @@ class LLMFactory:
                     "system": system_prompt,
                     "messages": [{"role": "user", "content": user_prompt}],
                 }
-                res = requests.post(
+                res = await client.post(
                     "https://api.anthropic.com/v1/messages",
-                    json=payload, headers=headers, timeout=60
+                    json=payload, headers=headers
                 )
                 if res.status_code == 200:
                     data = res.json()

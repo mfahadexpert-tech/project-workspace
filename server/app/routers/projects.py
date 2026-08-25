@@ -252,6 +252,6 @@ async def delete_member(project_id: str, member_id: str, db: AsyncSession = Depe
     if not member or member.project_id != project_id:
         raise HTTPException(status_code=404, detail="Member not found in project")
 
-    db.delete(member)
+    await db.delete(member)
     await db.commit()
     return {"status": "success", "message": f"Member {member.user_name} removed"}

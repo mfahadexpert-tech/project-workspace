@@ -127,10 +127,6 @@ async def update_task(task_id: str, payload: TaskUpdate, db: AsyncSession = Depe
             user_member_id=m_id
         )
         db.add(log)
-            action_type="task_moved",
-            description=f"Moved task '{task.title}' from {old_status.upper()} to {task.status.upper()}"
-        )
-        db.add(log)
 
     await db.commit()
     return task

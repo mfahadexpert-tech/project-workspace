@@ -9,7 +9,7 @@ class MemoryService:
     """
 
     @staticmethod
-    async def extract_and_save_memory(db: AsyncSession, project_id: str, text: str):
+    async def extract_and_save_memory(db: AsyncSession, project_id: str, text: str, class_id: str = None):
         # Look for explicit keyword patterns like "tech stack", "database", "must use", "framework", "architecture"
         lines = text.split("\n")
         keywords = ["must use", "database", "tech stack", "framework", "architecture", "rule", "convention", "deploy"]
